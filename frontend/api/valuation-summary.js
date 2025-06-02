@@ -1,6 +1,4 @@
 import OpenAI from "openai";
-// Node 18+ has fetch globally, otherwise use node-fetch
-import fetch from "node-fetch";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -8,6 +6,9 @@ const openai = new OpenAI({
 
 export default async function handler(req, res) {
   try {
+    // Dynamically import fetch if not available globally (Node 18+ has global fetch)
+    const fetch = global.fetch || (await import('node-fetch')).then(mod => mod.default);
+
     if (req.method !== "GET") {
       return res.status(405).json({ error: "Method not allowed" });
     }
@@ -18,39 +19,62 @@ export default async function handler(req, res) {
     }
 
     // Call Google PageSpeed API
-    const psResponse = await fetch(
-      `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(siteUrl)}&key=${process.env.GOOGLE_PAGESPEED_API_KEY}`
-    );
+    let pagespeedData;
+    try {
+      const psResponse = await fetch(
+        `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(siteUrl)}&key=${process.env.GOOGLE_PAGESPEED_API_KEY}`
+      );
 
-    if (!psResponse.ok) {
-      const errText = await psResponse.text();
-      return res.status(500).json({ error: `PageSpeed API error: ${errText}` });
+      if (!psResponse.ok) {
+        const errText = await psResponse.text();
+        return res.status(500).json({ error: `PageSpeed API error: ${errText}` });
+      }
+
+      pagespeedData = await psResponse.json();
+    } catch (err) {
+      return res.status(500).json({ error: "Failed to fetch PageSpeed data" });
     }
 
-    const pagespeedData = await psResponse.json();
-    const speedScore = Math.round(pagespeedData.lighthouseResult.categories.performance.score * 100);
+    // Extract performance score
+    const speedScore = Math.round(
+      pagespeedData.lighthouseResult.categories.performance.score * 100
+    );
 
-    // Call OpenAI API
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "You are a web performance and SEO expert providing actionable tips." },
-        { role: "user", content: `Website speed score: ${speedScore}. Give 3 clear, actionable improvement tips.` },
-      ],
-    });
+    // Generate AI tips with OpenAI
+    let aiTips = "";
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert web performance and SEO analyst providing actionable tips.",
+          },
+          {
+            role: "user",
+            content: `The website has a speed performance score of ${speedScore}. Give me 3 clear, actionable improvement tips.`,
+          },
+        ],
+      });
 
-    const aiTips = completion.choices[0].message.content;
+      aiTips = completion.choices[0].message.content;
+    } catch (aiError) {
+      return res.status(500).json({ error: "Failed to fetch AI tips" });
+    }
 
+    // Respond with metrics and AI tips
     return res.status(200).json({
       speedScore,
       aiTips,
-      javlinScore: speedScore, // for demo purpose
+      javlinScore: speedScore, // Example mapping for Javlin Score
     });
-  } catch (error) {
-    console.error("API handler error:", error);
+  } catch (err) {
+    console.error("Unexpected error:", err);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
+
+
 
 
 
