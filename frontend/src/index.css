@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* index.css */
-
 /* Reset box-sizing */
 *, *::before, *::after {
   box-sizing: border-box;
@@ -11,7 +9,7 @@
 
 /* Body base */
 body {
-  background-color: #0a0a0a;
+  background-color: #000000; /* Pure black background */
   color: #f9fafb;
   font-family: 'Inter', sans-serif;
   margin: 0;
@@ -36,7 +34,7 @@ a {
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #2563eb;
+  background-color: #2563eb; /* Tailwind blue-600 */
   border-radius: 4px;
 }
 
@@ -51,7 +49,36 @@ p {
   margin: 0;
 }
 
-/* Avoid global button styles, handle in Tailwind */
+/* Focus outlines for inputs and buttons */
+input:focus, button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.6); /* Tailwind blue-600 focus ring */
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+/* Card styling */
+.card {
+  background-color: #1f1f1f; /* Tailwind gray-900 */
+  border-radius: 1rem; /* rounded-xl */
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2); /* soft blue glow */
+  padding: 1.5rem;
+  transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 6px 25px rgba(37, 99, 235, 0.5); /* stronger glow on hover */
+}
+
+/* AI Tips styling */
+.ai-tips {
+  white-space: pre-wrap; /* preserve line breaks */
+  line-height: 1.6;
+  color: #d1d5db; /* Tailwind gray-300 */
+  padding: 1rem;
+  background-color: #111111;
+  border-radius: 0.75rem; /* rounded-lg */
+  margin-top: 0.5rem;
+}
 
 /* Fade-in animation for valuation results */
 .fade-in {
@@ -64,3 +91,4 @@ p {
     opacity: 1;
   }
 }
+

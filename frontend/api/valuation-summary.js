@@ -18,12 +18,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing url parameter" });
     }
 
-    // Call Google PageSpeed API
+    // Google PageSpeed API call with timing
     let pagespeedData;
     try {
+      console.time("PageSpeed API");
       const psResponse = await fetch(
         `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(siteUrl)}&key=${process.env.GOOGLE_PAGESPEED_API_KEY}`
       );
+      console.timeEnd("PageSpeed API");
 
       if (!psResponse.ok) {
         const errText = await psResponse.text();
@@ -40,9 +42,10 @@ export default async function handler(req, res) {
       pagespeedData.lighthouseResult.categories.performance.score * 100
     );
 
-    // Generate AI tips with OpenAI
+    // OpenAI completion with timing
     let aiTips = "";
     try {
+      console.time("OpenAI API");
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
@@ -56,7 +59,7 @@ export default async function handler(req, res) {
           },
         ],
       });
-
+      console.timeEnd("OpenAI API");
       aiTips = completion.choices[0].message.content;
     } catch (aiError) {
       return res.status(500).json({ error: "Failed to fetch AI tips" });
@@ -66,13 +69,14 @@ export default async function handler(req, res) {
     return res.status(200).json({
       speedScore,
       aiTips,
-      javlinScore: speedScore, // Example mapping for Javlin Score
+      javlinScore: speedScore,
     });
   } catch (err) {
     console.error("Unexpected error:", err);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
+
 
 
 
