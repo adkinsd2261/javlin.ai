@@ -1,31 +1,88 @@
-import React from 'react';
-import ToolPageTemplate from '../components/ToolPageTemplate';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
 
-export default function ContentGeneratorPage() {
-  const mockContentGen = async (prompt) => {
-    return new Promise((resolve) =>
-      setTimeout(() => {
-        resolve({
-          generatedText:
-            'Here’s an engaging blog intro: Welcome to the future of web analytics! In this post, we explore how Javlin.ai transforms your website insights...',
-        });
-      }, 1500)
-    );
-  };
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import ProtectedRoute from "./components/ProtectedRoute";
 
+import HomePage from "./pages/HomePage";
+import ValuationPage from "./pages/ValuationPage";
+import DashboardPage from "./pages/DashboardPage";
+import PricingPage from "./pages/PricingPage";
+import AboutPage from "./pages/AboutPage";
+import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
+import UserProfilePage from "./pages/UserProfilePage";
+import NotFoundPage from "./pages/NotFoundPage";
+
+export default function App() {
   return (
-    <ToolPageTemplate
-      title="Content Generator"
-      description="Generate AI-powered content for your site, from blog intros to product descriptions."
-      onSubmit={mockContentGen}
-    >
-      {(result) => (
-        <div>
-          <h2 className="text-lg font-semibold mb-2">Generated Content</h2>
-          <p className="bg-gray-800 p-4 rounded">{result.generatedText}</p>
-        </div>
-      )}
-    </ToolPageTemplate>
+    <div className="bg-black text-white min-h-screen flex flex-col">
+      <Router>
+        <Navbar />
+        <main className="flex-grow">
+          <AnimatedRoutes />
+        </main>
+        <Footer />
+      </Router>
+    </div>
   );
 }
+
+function AnimatedRoutes() {
+  const location = useLocation();
+
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageWrapper><HomePage /></PageWrapper>} />
+        <Route path="/valuation" element={<PageWrapper><ValuationPage /></PageWrapper>} />
+        <Route path="/pricing" element={<PageWrapper><PricingPage /></PageWrapper>} />
+        <Route path="/about" element={<PageWrapper><AboutPage /></PageWrapper>} />
+        <Route path="/login" element={<PageWrapper><LoginPage /></PageWrapper>} />
+        <Route path="/signup" element={<PageWrapper><SignupPage /></PageWrapper>} />
+
+        {/* Protected routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <PageWrapper>
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <PageWrapper>
+              <ProtectedRoute>
+                <UserProfilePage />
+              </ProtectedRoute>
+            </PageWrapper>
+          }
+        />
+
+        {/* 404 fallback */}
+        <Route path="*" element={<PageWrapper><NotFoundPage /></PageWrapper>} />
+      </Routes>
+    </AnimatePresence>
+  );
+}
+
+function PageWrapper({ children }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.4 }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 

@@ -1,9 +1,14 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 import { auth } from "../firebase";
+import { useAuthState } from "react-firebase-hooks/auth";
 
 export default function ProtectedRoute({ children }) {
-  const user = auth.currentUser;
+  const [user, loading] = useAuthState(auth);
+
+  if (loading) {
+    return <div className="text-center mt-10">Loading...</div>;
+  }
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -11,3 +16,5 @@ export default function ProtectedRoute({ children }) {
 
   return children;
 }
+
+
