@@ -1,100 +1,56 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import JavlinScoreCard from "../components/JavlinScoreCard";
 import KpiCard from "../components/KpiCard";
 import ToolCard from "../components/ToolCard";
-import ValuationForm from "../components/ValuationForm";
-
-// Mock data arrays (adjust as needed)
-const mockTrafficData = [
-  { month: "Feb", value: 4000 },
-  { month: "Mar", value: 6000 },
-  { month: "Apr", value: 8000 },
-  { month: "May", value: 9000 },
-];
-
-const mockRevenueData = [
-  { month: "Feb", value: 15000 },
-  { month: "Mar", value: 20000 },
-  { month: "Apr", value: 28000 },
-  { month: "May", value: 32500 },
-];
-
-const mockSpeedData = [
-  { month: "Feb", value: 65 },
-  { month: "Mar", value: 70 },
-  { month: "Apr", value: 72 },
-  { month: "May", value: 76 },
-];
-
-const mockMonthlyVisitorsData = [
-  { month: "Feb", value: 52000 },
-  { month: "Mar", value: 55000 },
-  { month: "Apr", value: 58000 },
-  { month: "May", value: 56200 },
-];
-
-const mockBounceRateData = [
-  { month: "Feb", value: 34 },
-  { month: "Mar", value: 33 },
-  { month: "Apr", value: 31 },
-  { month: "May", value: 32 },
-];
-
-const mockSessionDurationData = [
-  { month: "Feb", value: 210 },
-  { month: "Mar", value: 205 },
-  { month: "Apr", value: 215 },
-  { month: "May", value: 204 },
-];
-
-const mockConversionRateData = [
-  { month: "Feb", value: 2.3 },
-  { month: "Mar", value: 2.4 },
-  { month: "Apr", value: 2.6 },
-  { month: "May", value: 2.5 },
-];
-
-const mockNewUsersData = [
-  { month: "Feb", value: 3500 },
-  { month: "Mar", value: 3900 },
-  { month: "Apr", value: 4200 },
-  { month: "May", value: 4100 },
-];
-
-const mockReturningUsersData = [
-  { month: "Feb", value: 3300 },
-  { month: "Mar", value: 3500 },
-  { month: "Apr", value: 3700 },
-  { month: "May", value: 3700 },
-];
-
-const tools = [
-  {
-    title: "SEO Analyzer",
-    description: "Analyze your website SEO performance and get improvement tips.",
-    link: "/tools/seo-analyzer",
-  },
-  {
-    title: "Site Health",
-    description: "Check your website's health and fix issues.",
-    link: "/tools/site-health",
-  },
-  {
-    title: "Content Generator",
-    description: "Generate high-quality content tailored for your site.",
-    link: "/tools/content-generator",
-  },
-];
 
 export default function DashboardPage() {
-  const [valuationResult, setValuationResult] = useState(null);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const res = await fetch("/api/valuation-summary");
+        const result = await res.json();
+        if (res.ok) {
+          setData(result);
+        } else {
+          setError("Failed to load dashboard data.");
+        }
+      } catch (err) {
+        console.error(err);
+        setError("Server error while loading dashboard.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSummary();
+  }, []);
+
+  const tools = [
+    {
+      title: "SEO Analyzer",
+      description: "Analyze your website SEO performance and get improvement tips.",
+      link: "/tools/seo-analyzer",
+    },
+    {
+      title: "Site Health",
+      description: "Check your website's health and fix issues.",
+      link: "/tools/site-health",
+    },
+    {
+      title: "Content Generator",
+      description: "Generate high-quality content tailored for your site.",
+      link: "/tools/content-generator",
+    },
+  ];
 
   return (
     <div className="flex min-h-screen bg-black text-white">
       <Sidebar />
-
       <main className="flex-grow p-8 max-w-7xl mx-auto">
         <header className="mb-6">
           <h1 className="text-4xl font-extrabold mb-2">Dashboard</h1>
@@ -103,68 +59,48 @@ export default function DashboardPage() {
           </p>
         </header>
 
-        <section className="max-w-xl mb-8">
-          <ValuationForm onResult={setValuationResult} />
-        </section>
-
-        {valuationResult && (
+        {loading ? (
+          <div className="text-center mt-10 text-gray-400">Loading dashboard...</div>
+        ) : error ? (
+          <div className="text-center mt-10 text-red-500">{error}</div>
+        ) : (
           <>
+            {/* Main KPI Section */}
             <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8 max-w-7xl">
               <div className="bg-gray-900 rounded-xl p-6 flex flex-col justify-between">
-                <JavlinScoreCard score={valuationResult?.javlinScore ?? 0} />
+                <JavlinScoreCard score={data.javlinScore} />
                 <div className="mt-4">
                   <div className="text-gray-400 text-xs font-semibold mb-1">SEO Score</div>
-                  <div
-                    className="bg-blue-600 h-1 rounded-full"
-                    style={{ width: `${valuationResult?.seoScore ?? 0}%` }}
-                  />
+                  <div className="bg-blue-600 h-1 rounded-full" style={{ width: `${data.seoScore}%` }} />
                   <div className="text-gray-400 text-xs font-semibold mt-2 mb-1">Speed Score</div>
-                  <div
-                    className="bg-blue-600 h-1 rounded-full"
-                    style={{ width: `${valuationResult?.speedScore ?? 0}%` }}
-                  />
+                  <div className="bg-blue-600 h-1 rounded-full" style={{ width: `${data.speedScore}%` }} />
                   <div className="flex justify-between text-sm mt-2">
-                    <span>{valuationResult?.seoScore ?? 0}/100</span>
-                    <span>{valuationResult?.speedScore ?? 0}/100</span>
+                    <span>{data.seoScore}/100</span>
+                    <span>{data.speedScore}/100</span>
                   </div>
                 </div>
               </div>
 
-              <KpiCard
-                title="Traffic"
-                value={`${valuationResult?.traffic ?? 0}`}
-                chartData={mockTrafficData}
-              />
-              <KpiCard
-                title="Revenue"
-                value={`$${valuationResult?.estimatedValue ? valuationResult.estimatedValue.toLocaleString() : "0"}`}
-                chartData={mockRevenueData}
-              />
-              <KpiCard
-                title="Speed"
-                value={`${valuationResult?.speedScore ?? 0}`}
-                chartData={mockSpeedData}
-              />
+              <KpiCard title="Traffic" value={`${data.traffic} visits`} chartData={data.trafficChart} />
+              <KpiCard title="Revenue" value={`$${data.revenue.toLocaleString()}`} chartData={data.revenueChart} />
+              <KpiCard title="Conversion Rate" value={`${data.conversionRate}%`} chartData={data.conversionChart} />
             </section>
 
+            {/* Additional KPIs */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mb-12">
-              <KpiCard title="Monthly Visitors" value="56.2K" chartData={mockMonthlyVisitorsData} />
-              <KpiCard title="Bounce Rate" value="32%" chartData={mockBounceRateData} />
-              <KpiCard title="Avg. Session Duration" value="03:24" chartData={mockSessionDurationData} />
-              <KpiCard title="Conversion Rate" value="2.5%" chartData={mockConversionRateData} />
-              <KpiCard title="New Users" value="4.1K" chartData={mockNewUsersData} />
-              <KpiCard title="Returning Users" value="3.7K" chartData={mockReturningUsersData} />
+              <KpiCard title="Monthly Visitors" value={`${data.monthlyVisitors}K`} chartData={data.visitorsChart} />
+              <KpiCard title="Bounce Rate" value={`${data.bounceRate}%`} chartData={data.bounceChart} />
+              <KpiCard title="Avg. Session Duration" value={`${data.avgSessionDuration} min`} chartData={data.sessionChart} />
+              <KpiCard title="New Users" value={`${data.newUsers}`} chartData={data.newUsersChart} />
+              <KpiCard title="Returning Users" value={`${data.returningUsers}`} chartData={data.returningUsersChart} />
             </section>
 
+            {/* AI Tools Section */}
             <section>
               <h2 className="text-2xl font-bold mb-6">AI Tools</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl">
                 {tools.map((tool) => (
-                  <Link to={tool.link} key={tool.title} className="block">
-                    <div className="transition transform hover:scale-105 hover:ring-2 hover:ring-purple-700 rounded-lg">
-                      <ToolCard title={tool.title} description={tool.description} />
-                    </div>
-                  </Link>
+                  <ToolCard key={tool.title} title={tool.title} description={tool.description} link={tool.link} />
                 ))}
               </div>
             </section>
@@ -174,6 +110,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 
