@@ -1,13 +1,12 @@
 import OpenAI from "openai";
 
-// Dynamic import fetch for ESM compatibility
-const fetch = global.fetch || (await import('node-fetch')).then(mod => mod.default);
+const fetch = global.fetch; // Node 18+ global fetch
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Simple in-memory cache (URL -> response)
+// Simple in-memory cache (optional)
 const cache = new Map();
 
 export default async function handler(req, res) {
@@ -77,7 +76,7 @@ export default async function handler(req, res) {
       javlinScore: speedScore,
     };
 
-    // Cache the response for 5 minutes
+    // Cache response for 5 minutes
     cache.set(siteUrl, responsePayload);
     setTimeout(() => cache.delete(siteUrl), 5 * 60 * 1000);
 
@@ -90,6 +89,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
+
 
 
 
