@@ -9,6 +9,8 @@
   "dependencies": {
     "firebase": "^11.8.1",
     "framer-motion": "^12.15.0",
+    "next": "^15.4.0-canary.61",
+    "node-fetch": "^3.3.2",
     "react": "^18.0.0",
     "react-circular-progressbar": "^2.2.0",
     "react-dom": "^18.0.0",
