@@ -1,19 +1,12 @@
 import React, { useState } from "react";
+import { Link } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import JavlinScoreCard from "../components/JavlinScoreCard";
 import KpiCard from "../components/KpiCard";
 import ToolCard from "../components/ToolCard";
 import ValuationForm from "../components/ValuationForm";
 
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  ResponsiveContainer,
-  Tooltip,
-} from "recharts";
-
+// Mock data arrays (adjust as needed)
 const mockTrafficData = [
   { month: "Feb", value: 4000 },
   { month: "Mar", value: 6000 },
@@ -110,45 +103,50 @@ export default function DashboardPage() {
           </p>
         </header>
 
-        {/* Valuation Form */}
         <section className="max-w-xl mb-8">
           <ValuationForm onResult={setValuationResult} />
         </section>
 
-        {/* Show main KPIs only after valuation */}
         {valuationResult && (
           <>
             <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-8 max-w-7xl">
               <div className="bg-gray-900 rounded-xl p-6 flex flex-col justify-between">
-                <JavlinScoreCard score={valuationResult.javlinScore} />
+                <JavlinScoreCard score={valuationResult?.javlinScore ?? 0} />
                 <div className="mt-4">
                   <div className="text-gray-400 text-xs font-semibold mb-1">SEO Score</div>
                   <div
                     className="bg-blue-600 h-1 rounded-full"
-                    style={{ width: `${valuationResult.seoScore}%` }}
+                    style={{ width: `${valuationResult?.seoScore ?? 0}%` }}
                   />
                   <div className="text-gray-400 text-xs font-semibold mt-2 mb-1">Speed Score</div>
                   <div
                     className="bg-blue-600 h-1 rounded-full"
-                    style={{ width: `${valuationResult.speedScore}%` }}
+                    style={{ width: `${valuationResult?.speedScore ?? 0}%` }}
                   />
                   <div className="flex justify-between text-sm mt-2">
-                    <span>{valuationResult.seoScore}/100</span>
-                    <span>{valuationResult.speedScore}/100</span>
+                    <span>{valuationResult?.seoScore ?? 0}/100</span>
+                    <span>{valuationResult?.speedScore ?? 0}/100</span>
                   </div>
                 </div>
               </div>
 
-              <KpiCard title="Traffic" value={`${valuationResult.traffic}`} chartData={mockTrafficData} />
+              <KpiCard
+                title="Traffic"
+                value={`${valuationResult?.traffic ?? 0}`}
+                chartData={mockTrafficData}
+              />
               <KpiCard
                 title="Revenue"
-                value={`$${valuationResult.estimatedValue.toLocaleString()}`}
+                value={`$${valuationResult?.estimatedValue ? valuationResult.estimatedValue.toLocaleString() : "0"}`}
                 chartData={mockRevenueData}
               />
-              <KpiCard title="Speed" value={`${valuationResult.speedScore}`} chartData={mockSpeedData} />
+              <KpiCard
+                title="Speed"
+                value={`${valuationResult?.speedScore ?? 0}`}
+                chartData={mockSpeedData}
+              />
             </section>
 
-            {/* Other KPIs */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mb-12">
               <KpiCard title="Monthly Visitors" value="56.2K" chartData={mockMonthlyVisitorsData} />
               <KpiCard title="Bounce Rate" value="32%" chartData={mockBounceRateData} />
@@ -157,22 +155,28 @@ export default function DashboardPage() {
               <KpiCard title="New Users" value="4.1K" chartData={mockNewUsersData} />
               <KpiCard title="Returning Users" value="3.7K" chartData={mockReturningUsersData} />
             </section>
+
+            <section>
+              <h2 className="text-2xl font-bold mb-6">AI Tools</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl">
+                {tools.map((tool) => (
+                  <Link to={tool.link} key={tool.title} className="block">
+                    <div className="transition transform hover:scale-105 hover:ring-2 hover:ring-purple-700 rounded-lg">
+                      <ToolCard title={tool.title} description={tool.description} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
           </>
         )}
-
-        {/* AI Tools Section */}
-        <section>
-          <h2 className="text-2xl font-bold mb-6">AI Tools</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-7xl">
-            {tools.map((tool) => (
-              <ToolCard key={tool.title} title={tool.title} description={tool.description} link={tool.link} />
-            ))}
-          </div>
-        </section>
       </main>
     </div>
   );
 }
+
+
+
 
 
 

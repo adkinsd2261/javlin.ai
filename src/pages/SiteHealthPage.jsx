@@ -1,10 +1,39 @@
 import React from 'react';
+import ToolPageTemplate from '../components/ToolPageTemplate';
 
 export default function SiteHealthPage() {
+  const mockSiteHealth = async (url) => {
+    return new Promise((resolve) =>
+      setTimeout(() => {
+        resolve({
+          performance: 85,
+          accessibility: 90,
+          bestPractices: 80,
+          seo: 88,
+        });
+      }, 1500)
+    );
+  };
+
   return (
-    <section className="text-center py-24 max-w-3xl mx-auto">
-      <h1 className="text-blue-600 text-4xl font-bold mb-6">Site Health Checker</h1>
-      <p className="text-gray-400 mb-4">[Mock Output] Your site loads in 1.8 seconds. Optimize images and reduce script size.</p>
-    </section>
+    <ToolPageTemplate
+      title="Site Health Checker"
+      description="Check your site's performance, accessibility, and best practices."
+      onSubmit={mockSiteHealth}
+    >
+      {(result) => (
+        <div className="grid grid-cols-2 gap-4">
+          {Object.entries(result).map(([key, value]) => (
+            <div
+              key={key}
+              className="bg-gray-800 p-4 rounded text-center"
+            >
+              <h3 className="text-sm uppercase mb-2">{key}</h3>
+              <p className="text-2xl font-bold text-purple-400">{value}%</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </ToolPageTemplate>
   );
 }

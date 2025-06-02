@@ -1,19 +1,27 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
-import Navbar from './components/Navbar';
-import Footer from './components/Footer';
-import DashboardPage from './pages/DashboardPage';
-import AboutPage from './pages/AboutPage';
-import HomePage from './pages/HomePage';
-import SEOAnalyzerPage from './pages/SEOAnalyzerPage';
-import SiteHealthPage from './pages/SiteHealthPage';
-import ContentGeneratorPage from './pages/ContentGeneratorPage';
-import MarketplacePage from './pages/MarketplacePage';
-import PricingPage from './pages/PricingPage';
-import SettingsPage from './pages/SettingsPage';
-import ValuationPage from './pages/ValuationPage';
-import NotFoundPage from './pages/NotFoundPage';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+
+import Navbar from "./components/Navbar";
+import Footer from "./components/Footer";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+import HomePage from "./pages/HomePage";
+import ValuationPage from "./pages/ValuationPage";
+import DashboardPage from "./pages/DashboardPage";
+import SEOAnalyzerPage from "./pages/SEOAnalyzerPage";
+import SiteHealthPage from "./pages/SiteHealthPage";
+import ContentGeneratorPage from "./pages/ContentGeneratorPage";
+import MarketplacePage from "./pages/MarketplacePage";
+import PricingPage from "./pages/PricingPage";
+import AboutPage from "./pages/AboutPage";
+import SettingsPage from "./pages/SettingsPage";
+import NotFoundPage from "./pages/NotFoundPage";
+import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
+import PasswordResetPage from "./pages/PasswordResetPage";
+import UserProfilePage from "./pages/UserProfilePage";
+import VerifyEmailPage from "./pages/VerifyEmailPage";
 
 export default function App() {
   return (
@@ -35,17 +43,55 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
+        {/* Public Routes */}
         <Route path="/" element={<PageWrapper><HomePage /></PageWrapper>} />
-        <Route path="/dashboard" element={<PageWrapper><DashboardPage /></PageWrapper>} />
-        <Route path="/about" element={<PageWrapper><AboutPage /></PageWrapper>} />
-        {/* Removed the /tools route here */}
+        <Route path="/valuation" element={<PageWrapper><ValuationPage /></PageWrapper>} />
         <Route path="/tools/seo-analyzer" element={<PageWrapper><SEOAnalyzerPage /></PageWrapper>} />
         <Route path="/tools/site-health" element={<PageWrapper><SiteHealthPage /></PageWrapper>} />
         <Route path="/tools/content-generator" element={<PageWrapper><ContentGeneratorPage /></PageWrapper>} />
         <Route path="/marketplace" element={<PageWrapper><MarketplacePage /></PageWrapper>} />
         <Route path="/pricing" element={<PageWrapper><PricingPage /></PageWrapper>} />
-        <Route path="/settings" element={<PageWrapper><SettingsPage /></PageWrapper>} />
-        <Route path="/valuation" element={<PageWrapper><ValuationPage /></PageWrapper>} />
+        <Route path="/about" element={<PageWrapper><AboutPage /></PageWrapper>} />
+
+        {/* Auth Routes */}
+        <Route path="/login" element={<PageWrapper><LoginPage /></PageWrapper>} />
+        <Route path="/signup" element={<PageWrapper><SignupPage /></PageWrapper>} />
+        <Route path="/reset-password" element={<PageWrapper><PasswordResetPage /></PageWrapper>} />
+        <Route path="/verify-email" element={<PageWrapper><VerifyEmailPage /></PageWrapper>} />
+
+        {/* Protected Routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <PageWrapper>
+                <DashboardPage />
+              </PageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <PageWrapper>
+                <SettingsPage />
+              </PageWrapper>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <PageWrapper>
+                <UserProfilePage />
+              </PageWrapper>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* 404 Fallback */}
         <Route path="*" element={<PageWrapper><NotFoundPage /></PageWrapper>} />
       </Routes>
     </AnimatePresence>
@@ -64,6 +110,11 @@ function PageWrapper({ children }) {
     </motion.div>
   );
 }
+
+
+
+
+
 
 
 

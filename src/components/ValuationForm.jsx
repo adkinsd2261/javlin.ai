@@ -1,58 +1,107 @@
-// src/components/ValuationForm.jsx
 import React, { useState } from "react";
+import { motion } from "framer-motion";
 
 export default function ValuationForm({ onResult }) {
   const [url, setUrl] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const validateUrl = (input) => {
-    // Basic URL pattern without requiring https
-    const urlPattern = /^([a-z0-9]+(-[a-z0-9]+)*\.)+[a-z]{2,}$/i;
-    return urlPattern.test(input);
+    const regex = /^(https?:\/\/)?([\w\d-]+\.)+[\w\d-]+(\/.*)?$/i;
+    return regex.test(input);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     if (!url.trim()) {
-      setError("Enter your website URL");
+      setError("Please enter your website URL");
       return;
     }
 
     if (!validateUrl(url.trim())) {
-      setError("Please enter a valid URL (e.g. example.com)");
+      setError("Please enter a valid URL");
       return;
     }
 
-    setError("");
-    // Mock result for now; integrate API later
-    onResult({
-      url,
-      javlinScore: 87,
-      estimatedValue: 12345,
-      seoScore: 80,
-      speedScore: 75,
-      traffic: "12.5K",
-    });
+    setLoading(true);
+
+    // Simulate API call (replace with real integration)
+    setTimeout(() => {
+      const mockResult = {
+        url: url.trim(),
+        javlinScore: 87,
+        estimatedValue: 32000,      // number (not string)
+        seoScore: 82,
+        speedScore: 78,
+        traffic: 12500,             // number (not "12.5K")
+      };
+      onResult(mockResult);
+      setLoading(false);
+    }, 1500);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto">
+    <motion.form
+      onSubmit={handleSubmit}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-gray-900 p-6 rounded-2xl shadow-lg max-w-xl mx-auto flex flex-col sm:flex-row gap-4"
+      aria-label="Website valuation form"
+    >
       <input
         type="text"
+        placeholder="Enter your website URL (e.g. example.com)"
         value={url}
         onChange={(e) => setUrl(e.target.value)}
-        placeholder="Enter your website URL"
-        className="w-full p-3 rounded-lg bg-[#1F1F1F] border border-gray-700 text-white focus:outline-none focus:border-blue-500 transition"
+        className={`flex-grow bg-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition ${
+          error ? "ring-2 ring-red-500" : ""
+        }`}
+        aria-invalid={!!error}
+        aria-describedby="url-error"
       />
-      {error && <p className="mt-2 text-red-500 text-sm">{error}</p>}
       <button
         type="submit"
-        className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-semibold transition"
+        disabled={loading}
+        className="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 rounded-lg px-6 py-3 text-white font-semibold transition flex items-center justify-center"
       >
+        {loading ? (
+          <svg
+            className="animate-spin h-5 w-5 mr-2 text-white"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v8H4z"
+            />
+          </svg>
+        ) : null}
         Get Valuation
       </button>
-    </form>
+      {error && (
+        <motion.p
+          id="url-error"
+          className="text-red-500 mt-2 text-sm"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          role="alert"
+        >
+          {error}
+        </motion.p>
+      )}
+    </motion.form>
   );
 }
 
