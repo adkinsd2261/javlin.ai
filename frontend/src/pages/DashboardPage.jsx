@@ -24,33 +24,11 @@ export default function DashboardPage() {
       const res = await fetch(`/api/valuation-summary?url=${encodeURIComponent(inputUrl)}`);
       const result = await res.json();
 
-      if (!res.ok) {
+      if (res.ok) {
+        setData(result);
+      } else {
         setError(result.error || "Failed to load data.");
-        setLoading(false);
-        return;
       }
-
-      // Prepare mock analytics data here or replace with API response if available
-      const analytics = {
-        traffic: 56200,
-        revenue: 32500,
-        bounceRate: "32%",
-        avgSessionDuration: "03:24",
-        conversionRate: "2.5%",
-        newUsers: 4100,
-        returningUsers: 3700,
-      };
-
-      // Condense AI tips (simple example: take first 3 lines)
-      const condensedAiTips = result.aiTips
-        ? result.aiTips.split("\n").slice(0, 3).join("\n")
-        : "";
-
-      setData({
-        ...result,
-        analytics,
-        condensedAiTips,
-      });
     } catch (err) {
       setError("Server error while fetching data.");
     } finally {
@@ -67,6 +45,7 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-screen bg-black text-white">
       <Sidebar />
+
       <main className="flex-grow p-8 max-w-7xl mx-auto">
         <header className="mb-8">
           <h1 className="text-4xl font-extrabold mb-2">Dashboard</h1>
@@ -75,8 +54,8 @@ export default function DashboardPage() {
           </p>
         </header>
 
-        {/* Input & Button */}
-        <div className="flex gap-4 mb-8 max-w-3xl">
+        {/* Input and Button */}
+        <div className="flex gap-4 mb-8">
           <input
             type="text"
             placeholder="https://example.com"
@@ -87,14 +66,15 @@ export default function DashboardPage() {
           <button
             onClick={handleFetchData}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 rounded-lg px-8 py-3 text-white font-semibold disabled:opacity-60 disabled:cursor-not-allowed transition"
+            className="bg-blue-600 hover:bg-blue-700 rounded-lg px-6 py-3 text-white font-semibold disabled:opacity-60 disabled:cursor-not-allowed transition"
           >
             {loading ? "Loading..." : "Get Insights"}
           </button>
         </div>
 
-        {/* Error Message */}
-        {error && <div className="text-red-500 mb-6 font-semibold">{error}</div>}
+        {/* Loading and Error */}
+        {loading && <p className="text-blue-400 font-semibold mb-6">Loading insights...</p>}
+        {error && <p className="text-red-500 font-semibold mb-6">{error}</p>}
 
         {/* Results */}
         {data && (
@@ -104,57 +84,18 @@ export default function DashboardPage() {
               <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50">
                 <JavlinScoreCard score={data.javlinScore || 0} />
               </div>
-              <KpiCard
-                title="Traffic"
-                value={data.analytics.traffic.toLocaleString()}
-                chartData={mockLineData}
-              />
-              <KpiCard
-                title="Revenue"
-                value={`$${data.analytics.revenue.toLocaleString()}`}
-                chartData={mockLineData}
-              />
-              <KpiCard
-                title="Speed"
-                value={`${data.speedScore}%`}
-                chartData={mockLineData}
-              />
+              <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50 flex flex-col justify-center">
+                <KpiCard title="Speed Score" value={`${data.speedScore}%`} chartData={data.speedChart} />
+              </div>
+              {/* Add more KPIs here if you want, e.g. traffic, revenue, etc */}
             </section>
 
-            <section className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-6 gap-6 mb-12 max-w-7xl">
-              <KpiCard
-                title="Bounce Rate"
-                value={data.analytics.bounceRate}
-                chartData={mockLineData}
-              />
-              <KpiCard
-                title="Avg. Session Duration"
-                value={data.analytics.avgSessionDuration}
-                chartData={mockLineData}
-              />
-              <KpiCard
-                title="Conversion Rate"
-                value={data.analytics.conversionRate}
-                chartData={mockLineData}
-              />
-              <KpiCard
-                title="New Users"
-                value={data.analytics.newUsers.toLocaleString()}
-                chartData={mockLineData}
-              />
-              <KpiCard
-                title="Returning Users"
-                value={data.analytics.returningUsers.toLocaleString()}
-                chartData={mockLineData}
-              />
-            </section>
-
-            {/* AI Tips */}
-            <section className="mb-12 max-w-3xl">
+            {/* AI Tips Section */}
+            <section className="mb-12">
               <h2 className="text-2xl font-bold mb-4">AI Tips</h2>
-              <pre className="bg-gray-800 p-6 rounded-lg shadow-md shadow-blue-600/20 whitespace-pre-wrap text-gray-300 font-mono">
-                {data.condensedAiTips}
-              </pre>
+              <p className="whitespace-pre-wrap leading-relaxed text-gray-300 p-6 bg-gray-900 rounded-lg shadow-md shadow-blue-600/20">
+                {data.aiTips}
+              </p>
             </section>
 
             {/* AI Tools */}
@@ -172,6 +113,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 // Dummy chart data for KPI cards - replace with real data later
 const mockLineData = [
