@@ -4,72 +4,73 @@ export default async function handler(req, res) {
   }
 
   try {
-    // TODO: Replace this mock with real API calls (PageSpeed, etc.)
-    const mockData = {
-      javlinScore: 85,
-      seoScore: 78,
-      speedScore: 72,
-      traffic: 12500,
-      revenue: 32000,
-      conversionRate: 2.5,
-      monthlyVisitors: 56,
-      bounceRate: 34,
-      avgSessionDuration: "3:24",
-      newUsers: 4100,
-      returningUsers: 3700,
+    const openaiApiKey = process.env.OPENAI_API_KEY;
+    const pagespeedApiKey = process.env.GOOGLE_PAGESPEED_API_KEY;
+
+    const targetUrl = req.query.url || "https://example.com"; // You can pass ?url=
+
+    // --- Google PageSpeed API Call ---
+    const pagespeedResponse = await fetch(
+      `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(targetUrl)}&key=${pagespeedApiKey}`
+    );
+    const pagespeedData = await pagespeedResponse.json();
+
+    const speedScore = Math.round(pagespeedData.lighthouseResult?.categories.performance?.score * 100) || 0;
+
+    // --- OpenAI API Call ---
+    const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${openaiApiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4",
+        messages: [
+          {
+            role: "user",
+            content: `Provide a brief SEO improvement summary for ${targetUrl}.`
+          }
+        ]
+      })
+    });
+
+    const openaiData = await openaiResponse.json();
+    const seoSummary = openaiData.choices?.[0]?.message?.content || "No SEO insights available.";
+
+    // --- Assemble Final Data ---
+    const response = {
+      javlinScore: Math.round((speedScore + 80) / 2), // example combo score
+      seoScore: 80, // placeholder, replace with real SEO score if you have one
+      speedScore: speedScore,
+      traffic: 12500, // placeholder or pull from another source
+      revenue: 32000, // placeholder
+      conversionRate: 2.5, // placeholder
+      monthlyVisitors: 56, // placeholder (in K)
+      bounceRate: 34, // placeholder
+      avgSessionDuration: "3:24", // placeholder
+      newUsers: 4100, // placeholder
+      returningUsers: 3700, // placeholder
+      seoSummary: seoSummary,
       trafficChart: [
         { month: "Feb", value: 4000 },
         { month: "Mar", value: 6000 },
         { month: "Apr", value: 8000 },
-        { month: "May", value: 9000 },
+        { month: "May", value: 9000 }
       ],
       revenueChart: [
         { month: "Feb", value: 15000 },
         { month: "Mar", value: 20000 },
         { month: "Apr", value: 28000 },
-        { month: "May", value: 32500 },
-      ],
-      conversionChart: [
-        { month: "Feb", value: 2.3 },
-        { month: "Mar", value: 2.4 },
-        { month: "Apr", value: 2.6 },
-        { month: "May", value: 2.5 },
-      ],
-      visitorsChart: [
-        { month: "Feb", value: 52000 },
-        { month: "Mar", value: 55000 },
-        { month: "Apr", value: 58000 },
-        { month: "May", value: 56200 },
-      ],
-      bounceChart: [
-        { month: "Feb", value: 34 },
-        { month: "Mar", value: 33 },
-        { month: "Apr", value: 31 },
-        { month: "May", value: 32 },
-      ],
-      sessionChart: [
-        { month: "Feb", value: 210 },
-        { month: "Mar", value: 205 },
-        { month: "Apr", value: 215 },
-        { month: "May", value: 204 },
-      ],
-      newUsersChart: [
-        { month: "Feb", value: 3500 },
-        { month: "Mar", value: 3900 },
-        { month: "Apr", value: 4200 },
-        { month: "May", value: 4100 },
-      ],
-      returningUsersChart: [
-        { month: "Feb", value: 3300 },
-        { month: "Mar", value: 3500 },
-        { month: "Apr", value: 3700 },
-        { month: "May", value: 3700 },
-      ],
+        { month: "May", value: 32500 }
+      ]
+      // add additional charts as needed
     };
 
-    return res.status(200).json(mockData);
+    return res.status(200).json(response);
   } catch (error) {
     console.error("Error in valuation-summary:", error);
     return res.status(500).json({ error: "Server error fetching summary" });
   }
 }
+
