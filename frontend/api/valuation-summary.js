@@ -1,17 +1,32 @@
 import OpenAI from "openai";
 
-const fetch = global.fetch; // Node 18+ global fetch
-
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Simple in-memory cache (optional)
-const cache = new Map();
+// Retry helper for PageSpeed API fetch
+async function fetchPageSpeedData(url, apiKey, retries = 3, delay = 1500) {
+  for (let i = 0; i < retries; i++) {
+    const response = await fetch(
+      `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&key=${apiKey}`
+    );
+
+    if (response.ok) {
+      return response.json();
+    } else {
+      const errorData = await response.json();
+      if (errorData.error && errorData.error.code === 500 && i < retries - 1) {
+        // Wait before retrying
+        await new Promise((res) => setTimeout(res, delay));
+      } else {
+        throw new Error(`PageSpeed API error: ${JSON.stringify(errorData)}`);
+      }
+    }
+  }
+  throw new Error("Failed to fetch PageSpeed data after retries");
+}
 
 export default async function handler(req, res) {
-  const startTime = Date.now();
-
   try {
     if (req.method !== "GET") {
       return res.status(405).json({ error: "Method not allowed" });
@@ -22,73 +37,51 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing url parameter" });
     }
 
-    // Return cached response if available
-    if (cache.has(siteUrl)) {
-      console.log(`[Cache] Returning cached result for ${siteUrl}`);
-      return res.status(200).json(cache.get(siteUrl));
+    // Fetch PageSpeed data with retry
+    let pagespeedData;
+    try {
+      pagespeedData = await fetchPageSpeedData(siteUrl, process.env.GOOGLE_PAGESPEED_API_KEY);
+    } catch (psError) {
+      return res.status(500).json({ error: psError.message || "Failed to fetch PageSpeed data" });
     }
 
-    console.log(`[API] Fetching PageSpeed data for ${siteUrl}`);
-    const psStart = Date.now();
+    // Extract performance score
+    const speedScore = Math.round(pagespeedData.lighthouseResult.categories.performance.score * 100);
 
-    const psResponse = await fetch(
-      `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(siteUrl)}&key=${process.env.GOOGLE_PAGESPEED_API_KEY}`
-    );
+    // Generate AI tips with OpenAI
+    let aiTips = "";
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert web performance and SEO analyst providing actionable tips.",
+          },
+          {
+            role: "user",
+            content: `The website has a speed performance score of ${speedScore}. Give me 3 clear, actionable improvement tips.`,
+          },
+        ],
+      });
 
-    if (!psResponse.ok) {
-      const errText = await psResponse.text();
-      console.error(`[API] PageSpeed API error: ${errText}`);
-      return res.status(500).json({ error: `PageSpeed API error: ${errText}` });
+      aiTips = completion.choices[0].message.content;
+    } catch (aiError) {
+      return res.status(500).json({ error: "Failed to fetch AI tips" });
     }
 
-    const pagespeedData = await psResponse.json();
-    const psDuration = Date.now() - psStart;
-    console.log(`[API] PageSpeed fetched in ${psDuration}ms`);
-
-    const speedScore = Math.round(
-      pagespeedData.lighthouseResult.categories.performance.score * 100
-    );
-
-    console.log(`[API] Calling OpenAI for tips (speedScore: ${speedScore})`);
-    const aiStart = Date.now();
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: "You are an expert web performance and SEO analyst providing actionable tips.",
-        },
-        {
-          role: "user",
-          content: `The website has a speed performance score of ${speedScore}. Give me 3 clear, actionable improvement tips.`,
-        },
-      ],
-    });
-
-    const aiTips = completion.choices[0].message.content;
-    const aiDuration = Date.now() - aiStart;
-    console.log(`[API] OpenAI tips fetched in ${aiDuration}ms`);
-
-    const responsePayload = {
+    // Return data
+    return res.status(200).json({
       speedScore,
       aiTips,
       javlinScore: speedScore,
-    };
-
-    // Cache response for 5 minutes
-    cache.set(siteUrl, responsePayload);
-    setTimeout(() => cache.delete(siteUrl), 5 * 60 * 1000);
-
-    const totalDuration = Date.now() - startTime;
-    console.log(`[API] Total API duration: ${totalDuration}ms`);
-
-    return res.status(200).json(responsePayload);
+    });
   } catch (err) {
-    console.error("[API] Unexpected error:", err);
+    console.error("Unexpected error:", err);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
+
 
 
 
