@@ -42,30 +42,10 @@ function AnimatedRoutes() {
         <Route path="/about" element={<PageWrapper><AboutPage /></PageWrapper>} />
         <Route path="/login" element={<PageWrapper><LoginPage /></PageWrapper>} />
         <Route path="/signup" element={<PageWrapper><SignupPage /></PageWrapper>} />
-
-        {/* Protected routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <PageWrapper>
-              <ProtectedRoute>
-                <DashboardPage />
-              </ProtectedRoute>
-            </PageWrapper>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <PageWrapper>
-              <ProtectedRoute>
-                <UserProfilePage />
-              </ProtectedRoute>
-            </PageWrapper>
-          }
-        />
-
-        {/* 404 fallback */}
+        {/* Protected */}
+        <Route path="/dashboard" element={<PageWrapper><ProtectedRoute><DashboardPage /></ProtectedRoute></PageWrapper>} />
+        <Route path="/profile" element={<PageWrapper><ProtectedRoute><UserProfilePage /></ProtectedRoute></PageWrapper>} />
+        {/* 404 */}
         <Route path="*" element={<PageWrapper><NotFoundPage /></PageWrapper>} />
       </Routes>
     </AnimatePresence>
@@ -84,6 +64,7 @@ function PageWrapper({ children }) {
     </motion.div>
   );
 }
+
 
 
 

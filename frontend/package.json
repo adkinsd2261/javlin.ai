@@ -1,5 +1,5 @@
 {
-  "name": "javlin-ai-starter",
+  "name": "javlin-frontend",
   "version": "1.0.0",
   "scripts": {
     "dev": "vite",
@@ -7,16 +7,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "firebase": "^11.8.1",
-    "framer-motion": "^12.15.0",
-    "next": "^15.4.0-canary.61",
-    "node-fetch": "^3.3.2",
+    "openai": "^4.10.0",
     "react": "^18.0.0",
-    "react-circular-progressbar": "^2.2.0",
     "react-dom": "^18.0.0",
-    "react-firebase-hooks": "^5.1.1",
-    "react-icons": "^5.5.0",
     "react-router-dom": "^7.6.1",
+    "framer-motion": "^12.15.0",
+    "react-firebase-hooks": "^5.1.1",
+    "firebase": "^11.8.1",
+    "react-icons": "^5.5.0",
     "recharts": "^2.15.3"
   },
   "devDependencies": {
@@ -24,6 +22,7 @@
     "autoprefixer": "^10.0.0",
     "postcss": "^8.0.0",
     "tailwindcss": "^3.0.0",
-    "vite": "^4.0.0"
+    "vite": "^4.0.0",
+    "node-fetch": "^3.3.2"
   }
 }
