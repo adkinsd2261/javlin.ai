@@ -124,16 +124,20 @@ export default function DashboardPage() {
         {/* Results */}
         {data && (
           <>
+            {/* Show fallback warning if data is partial */}
+            {data.fallback && (
+              <div className="mb-6 p-4 bg-yellow-700 text-yellow-100 rounded-md font-semibold">
+                ⚠️ PageSpeed API timed out or failed, showing fallback data. Try
+                again later for full results.
+              </div>
+            )}
+
             {/* KPI Cards */}
             <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
               <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50">
-                {/* Pass formatted Javlin Score as string */}
-                <JavlinScoreCard
-                  score={formatNumber(data.javlinScore || 0)}
-                />
+                <JavlinScoreCard score={formatNumber(data.javlinScore || 0)} />
               </div>
               <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50 flex flex-col justify-center">
-                {/* Format speed score with 1 decimal percent */}
                 <KpiCard
                   title="Speed Score"
                   value={formatPercent(data.speedScore || 0)}
@@ -166,6 +170,8 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
 
 
 
