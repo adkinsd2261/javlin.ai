@@ -1,6 +1,14 @@
 import React from "react";
 
 export default function JavlinScoreCard({ score }) {
+  // Ensure score is a number and clamp between 0 and 100 for SVG ring
+  const numericScore = Math.min(Math.max(Number(score) || 0, 0), 100);
+  
+  // Format the score for display (no decimals, just integer)
+  const displayScore = numericScore.toLocaleString("en-US", {
+    maximumFractionDigits: 0,
+  });
+
   return (
     <div className="flex flex-col items-center justify-center bg-gray-900 rounded-xl p-6 shadow-lg max-w-xs w-full">
       {/* Label */}
@@ -11,6 +19,7 @@ export default function JavlinScoreCard({ score }) {
       {/* Circular Score Ring */}
       <div className="relative w-28 h-28">
         <svg className="w-28 h-28 transform -rotate-90" viewBox="0 0 100 100">
+          {/* Background circle */}
           <circle
             className="text-gray-800"
             strokeWidth="10"
@@ -20,10 +29,11 @@ export default function JavlinScoreCard({ score }) {
             cx="50"
             cy="50"
           />
+          {/* Foreground progress ring */}
           <circle
             className="text-blue-600"
             strokeWidth="10"
-            strokeDasharray={`${score * 2.82} 282`}
+            strokeDasharray={`${numericScore * 2.82} 282`}
             strokeLinecap="round"
             stroke="currentColor"
             fill="transparent"
@@ -33,13 +43,16 @@ export default function JavlinScoreCard({ score }) {
             style={{ transition: "stroke-dasharray 0.7s ease" }}
           />
         </svg>
-        <div className="absolute inset-0 flex items-center justify-center text-white text-4xl font-extrabold select-none">
-          {score}
+
+        {/* Centered score number */}
+        <div className="absolute inset-0 flex items-center justify-center text-white text-4xl font-extrabold select-none transition-all duration-700">
+          {displayScore}
         </div>
       </div>
     </div>
   );
 }
+
 
 
 

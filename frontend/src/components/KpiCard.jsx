@@ -28,7 +28,7 @@ export default function KpiCard({ title, value, chartData }) {
               />
               <YAxis hide domain={["dataMin", "dataMax"]} />
               <Tooltip
-                contentStyle={{ backgroundColor: "#1F2937", border: "none", padding: "8px 12px" }} // Added padding for breathing room
+                contentStyle={{ backgroundColor: "#1F2937", border: "none", padding: "8px 12px" }}
                 labelStyle={{ color: "#9CA3AF" }} // Tailwind gray-400
                 itemStyle={{ color: "#F9FAFB" }} // Tailwind gray-50
               />
@@ -48,6 +48,8 @@ export default function KpiCard({ title, value, chartData }) {
     </div>
   );
 }
+
+
 
 
 

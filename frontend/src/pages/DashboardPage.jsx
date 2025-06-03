@@ -4,6 +4,26 @@ import JavlinScoreCard from "../components/JavlinScoreCard";
 import KpiCard from "../components/KpiCard";
 import ToolCard from "../components/ToolCard";
 
+// Helper formatting functions
+function formatNumber(num) {
+  return Number(num).toLocaleString("en-US");
+}
+
+function formatPercent(num) {
+  return `${Number(num).toLocaleString("en-US", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
+}
+
+function formatDollars(num) {
+  return Number(num).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+  });
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -21,7 +41,9 @@ export default function DashboardPage() {
     setData(null);
 
     try {
-      const res = await fetch(`/api/valuation-summary?url=${encodeURIComponent(inputUrl)}`);
+      const res = await fetch(
+        `/api/valuation-summary?url=${encodeURIComponent(inputUrl)}`
+      );
       const result = await res.json();
 
       if (res.ok) {
@@ -37,9 +59,30 @@ export default function DashboardPage() {
   };
 
   const tools = [
-    { title: "SEO Analyzer", description: "Analyze SEO performance.", link: "/tools/seo-analyzer" },
-    { title: "Site Health", description: "Check your site's health.", link: "/tools/site-health" },
-    { title: "Content Generator", description: "Generate tailored content.", link: "/tools/content-generator" },
+    {
+      title: "SEO Analyzer",
+      description: "Analyze SEO performance.",
+      link: "/tools/seo-analyzer",
+    },
+    {
+      title: "Site Health",
+      description: "Check your site's health.",
+      link: "/tools/site-health",
+    },
+    {
+      title: "Content Generator",
+      description: "Generate tailored content.",
+      link: "/tools/content-generator",
+    },
+  ];
+
+  // Dummy chart data for KPI cards - replace with real data later
+  const mockLineData = [
+    { month: "Jan", value: 30 },
+    { month: "Feb", value: 45 },
+    { month: "Mar", value: 60 },
+    { month: "Apr", value: 55 },
+    { month: "May", value: 75 },
   ];
 
   return (
@@ -73,7 +116,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Loading and Error */}
-        {loading && <p className="text-blue-400 font-semibold mb-6">Loading insights...</p>}
+        {loading && (
+          <p className="text-blue-400 font-semibold mb-6">Loading insights...</p>
+        )}
         {error && <p className="text-red-500 font-semibold mb-6">{error}</p>}
 
         {/* Results */}
@@ -82,12 +127,16 @@ export default function DashboardPage() {
             {/* KPI Cards */}
             <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
               <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50">
-                <JavlinScoreCard score={data.javlinScore || 0} />
+                <JavlinScoreCard score={formatNumber(data.javlinScore || 0)} />
               </div>
               <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50 flex flex-col justify-center">
-                <KpiCard title="Speed Score" value={`${data.speedScore}%`} chartData={data.speedChart} />
+                <KpiCard
+                  title="Speed Score"
+                  value={formatPercent(data.speedScore || 0)}
+                  chartData={data.speedChart || mockLineData}
+                />
               </div>
-              {/* Add more KPIs here if you want, e.g. traffic, revenue, etc */}
+              {/* Add more KPIs here, e.g. traffic, revenue */}
             </section>
 
             {/* AI Tips Section */}
@@ -115,14 +164,6 @@ export default function DashboardPage() {
 }
 
 
-// Dummy chart data for KPI cards - replace with real data later
-const mockLineData = [
-  { month: "Jan", value: 30 },
-  { month: "Feb", value: 45 },
-  { month: "Mar", value: 60 },
-  { month: "Apr", value: 55 },
-  { month: "May", value: 75 },
-];
 
 
 
