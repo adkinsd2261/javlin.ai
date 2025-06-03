@@ -5,7 +5,7 @@ const openai = new OpenAI({
 });
 
 // Utility to add timeout to fetch
-async function timeoutFetch(url, options = {}, timeout = 10000) { // 10 seconds timeout
+async function timeoutFetch(url, options = {}, timeout = 30000) {
   return Promise.race([
     fetch(url, options),
     new Promise((_, reject) =>
@@ -14,8 +14,8 @@ async function timeoutFetch(url, options = {}, timeout = 10000) { // 10 seconds 
   ]);
 }
 
-// Retry helper for PageSpeed API fetch with timeout and logging
-async function fetchPageSpeedData(url, apiKey, retries = 2, delay = 1500) {
+// Retry helper for PageSpeed API fetch with timeout and retry delay
+async function fetchPageSpeedData(url, apiKey, retries = 3, delay = 3000) {
   for (let i = 0; i < retries; i++) {
     try {
       console.log(`Attempt ${i + 1} fetching PageSpeed for: ${url}`);
@@ -24,9 +24,8 @@ async function fetchPageSpeedData(url, apiKey, retries = 2, delay = 1500) {
           url
         )}&key=${apiKey}`,
         {},
-        10000 // 10 seconds timeout per attempt
+        30000 // 30 seconds timeout
       );
-      console.log(`Response status: ${response.status}`);
 
       if (response.ok) {
         const json = await response.json();
@@ -68,10 +67,19 @@ export default async function handler(req, res) {
     // Fetch PageSpeed data with retry and timeout
     let pagespeedData;
     try {
-      pagespeedData = await fetchPageSpeedData(siteUrl, process.env.GOOGLE_PAGESPEED_API_KEY);
+      pagespeedData = await fetchPageSpeedData(
+        siteUrl,
+        process.env.GOOGLE_PAGESPEED_API_KEY
+      );
     } catch (psError) {
       console.error("PageSpeed API fetch failed:", psError);
-      return res.status(500).json({ error: psError.message || "Failed to fetch PageSpeed data" });
+      // Return fallback partial data and friendly message
+      return res.status(200).json({
+        speedScore: 0,
+        aiTips:
+          "PageSpeed data is currently unavailable. Please try again later.",
+        javlinScore: 0,
+      });
     }
 
     // Extract performance score safely
@@ -88,7 +96,8 @@ export default async function handler(req, res) {
         messages: [
           {
             role: "system",
-            content: "You are an expert web performance and SEO analyst providing actionable tips.",
+            content:
+              "You are an expert web performance and SEO analyst providing actionable tips.",
           },
           {
             role: "user",
@@ -99,7 +108,7 @@ export default async function handler(req, res) {
 
       aiTips = completion.choices[0].message.content;
     } catch (aiError) {
-      console.error("OpenAI fetch failed:", aiError);
+      console.error("AI tips fetch failed:", aiError);
       return res.status(500).json({ error: "Failed to fetch AI tips" });
     }
 
@@ -114,6 +123,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
+
 
 
 
