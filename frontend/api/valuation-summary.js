@@ -5,7 +5,7 @@ const openai = new OpenAI({
 });
 
 // Utility to add timeout to fetch
-async function timeoutFetch(url, options = {}, timeout = 30000) {
+async function timeoutFetch(url, options = {}, timeout = 10000) { // 10 seconds timeout
   return Promise.race([
     fetch(url, options),
     new Promise((_, reject) =>
@@ -14,34 +14,40 @@ async function timeoutFetch(url, options = {}, timeout = 30000) {
   ]);
 }
 
-// Retry helper for PageSpeed API fetch with timeout
-async function fetchPageSpeedData(url, apiKey, retries = 3, delay = 1500) {
+// Retry helper for PageSpeed API fetch with timeout and logging
+async function fetchPageSpeedData(url, apiKey, retries = 2, delay = 1500) {
   for (let i = 0; i < retries; i++) {
     try {
+      console.log(`Attempt ${i + 1} fetching PageSpeed for: ${url}`);
       const response = await timeoutFetch(
         `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(
           url
         )}&key=${apiKey}`,
         {},
-        25000 // 25 seconds timeout per fetch attempt
+        10000 // 10 seconds timeout per attempt
       );
+      console.log(`Response status: ${response.status}`);
 
       if (response.ok) {
-        return response.json();
+        const json = await response.json();
+        console.log("PageSpeed data received successfully.");
+        return json;
       } else {
         const errorData = await response.json();
+        console.warn(`PageSpeed API error on attempt ${i + 1}:`, errorData);
         if (errorData.error && errorData.error.code === 500 && i < retries - 1) {
-          // Wait before retrying
+          console.log(`Retrying after delay ${delay}ms...`);
           await new Promise((res) => setTimeout(res, delay));
         } else {
           throw new Error(`PageSpeed API error: ${JSON.stringify(errorData)}`);
         }
       }
     } catch (err) {
+      console.error(`Attempt ${i + 1} failed: ${err.message}`);
       if (i === retries - 1) {
         throw err; // rethrow after last attempt
       }
-      // Wait before retrying on fetch timeout or error
+      console.log(`Retrying after delay ${delay}ms...`);
       await new Promise((res) => setTimeout(res, delay));
     }
   }
@@ -64,6 +70,7 @@ export default async function handler(req, res) {
     try {
       pagespeedData = await fetchPageSpeedData(siteUrl, process.env.GOOGLE_PAGESPEED_API_KEY);
     } catch (psError) {
+      console.error("PageSpeed API fetch failed:", psError);
       return res.status(500).json({ error: psError.message || "Failed to fetch PageSpeed data" });
     }
 
@@ -92,6 +99,7 @@ export default async function handler(req, res) {
 
       aiTips = completion.choices[0].message.content;
     } catch (aiError) {
+      console.error("OpenAI fetch failed:", aiError);
       return res.status(500).json({ error: "Failed to fetch AI tips" });
     }
 
@@ -106,6 +114,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
+
 
 
 
