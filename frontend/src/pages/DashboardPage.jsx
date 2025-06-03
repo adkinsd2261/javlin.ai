@@ -127,9 +127,13 @@ export default function DashboardPage() {
             {/* KPI Cards */}
             <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
               <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50">
-                <JavlinScoreCard score={formatNumber(data.javlinScore || 0)} />
+                {/* Pass formatted Javlin Score as string */}
+                <JavlinScoreCard
+                  score={formatNumber(data.javlinScore || 0)}
+                />
               </div>
               <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50 flex flex-col justify-center">
+                {/* Format speed score with 1 decimal percent */}
                 <KpiCard
                   title="Speed Score"
                   value={formatPercent(data.speedScore || 0)}
@@ -162,6 +166,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 

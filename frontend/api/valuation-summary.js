@@ -4,8 +4,12 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Utility to add timeout to fetch
-async function timeoutFetch(url, options = {}, timeout = 30000) {
+// Simple in-memory cache: { [url]: { timestamp: number, data: object } }
+const cache = {};
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes cache
+
+// Timeout helper for fetch
+async function timeoutFetch(url, options = {}, timeout = 15000) { // 15s timeout
   return Promise.race([
     fetch(url, options),
     new Promise((_, reject) =>
@@ -14,43 +18,37 @@ async function timeoutFetch(url, options = {}, timeout = 30000) {
   ]);
 }
 
-// Retry helper for PageSpeed API fetch with timeout and retry delay
-async function fetchPageSpeedData(url, apiKey, retries = 3, delay = 3000) {
-  for (let i = 0; i < retries; i++) {
+// Fetch with 1 retry max to speed failover
+async function fetchPageSpeedData(url, apiKey) {
+  try {
+    const response = await timeoutFetch(
+      `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(
+        url
+      )}&key=${apiKey}`
+    );
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`PageSpeed API error: ${JSON.stringify(errorData)}`);
+    }
+    return response.json();
+  } catch (err) {
+    // 1 retry
     try {
-      console.log(`Attempt ${i + 1} fetching PageSpeed for: ${url}`);
-      const response = await timeoutFetch(
+      await new Promise((r) => setTimeout(r, 1000));
+      const retryResponse = await timeoutFetch(
         `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(
           url
-        )}&key=${apiKey}`,
-        {},
-        30000 // 30 seconds timeout
+        )}&key=${apiKey}`
       );
-
-      if (response.ok) {
-        const json = await response.json();
-        console.log("PageSpeed data received successfully.");
-        return json;
-      } else {
-        const errorData = await response.json();
-        console.warn(`PageSpeed API error on attempt ${i + 1}:`, errorData);
-        if (errorData.error && errorData.error.code === 500 && i < retries - 1) {
-          console.log(`Retrying after delay ${delay}ms...`);
-          await new Promise((res) => setTimeout(res, delay));
-        } else {
-          throw new Error(`PageSpeed API error: ${JSON.stringify(errorData)}`);
-        }
+      if (!retryResponse.ok) {
+        const errorData = await retryResponse.json();
+        throw new Error(`PageSpeed API retry error: ${JSON.stringify(errorData)}`);
       }
-    } catch (err) {
-      console.error(`Attempt ${i + 1} failed: ${err.message}`);
-      if (i === retries - 1) {
-        throw err; // rethrow after last attempt
-      }
-      console.log(`Retrying after delay ${delay}ms...`);
-      await new Promise((res) => setTimeout(res, delay));
+      return retryResponse.json();
+    } catch (retryErr) {
+      throw retryErr;
     }
   }
-  throw new Error("Failed to fetch PageSpeed data after retries");
 }
 
 export default async function handler(req, res) {
@@ -64,31 +62,33 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing url parameter" });
     }
 
-    // Fetch PageSpeed data with retry and timeout
-    let pagespeedData;
-    try {
-      pagespeedData = await fetchPageSpeedData(
-        siteUrl,
-        process.env.GOOGLE_PAGESPEED_API_KEY
-      );
-    } catch (psError) {
-      console.error("PageSpeed API fetch failed:", psError);
-      // Return fallback partial data and friendly message
-      return res.status(200).json({
-        speedScore: 0,
-        aiTips:
-          "PageSpeed data is currently unavailable. Please try again later.",
-        javlinScore: 0,
-      });
+    // Check cache
+    const cached = cache[siteUrl];
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
+      return res.status(200).json(cached.data);
     }
 
-    // Extract performance score safely
+    // Fetch fresh data
+    let pagespeedData;
+    try {
+      pagespeedData = await fetchPageSpeedData(siteUrl, process.env.GOOGLE_PAGESPEED_API_KEY);
+    } catch (psError) {
+      // If cache exists, serve stale with warning
+      if (cached) {
+        return res.status(200).json({
+          ...cached.data,
+          warning: "Serving cached data due to PageSpeed API failure",
+        });
+      }
+      return res.status(500).json({ error: psError.message || "Failed to fetch PageSpeed data" });
+    }
+
     const speedScore =
       Math.round(
         pagespeedData?.lighthouseResult?.categories?.performance?.score * 100
       ) || 0;
 
-    // Generate AI tips with OpenAI
+    // Generate AI tips
     let aiTips = "";
     try {
       const completion = await openai.chat.completions.create({
@@ -96,8 +96,7 @@ export default async function handler(req, res) {
         messages: [
           {
             role: "system",
-            content:
-              "You are an expert web performance and SEO analyst providing actionable tips.",
+            content: "You are an expert web performance and SEO analyst providing actionable tips.",
           },
           {
             role: "user",
@@ -105,24 +104,30 @@ export default async function handler(req, res) {
           },
         ],
       });
-
       aiTips = completion.choices[0].message.content;
     } catch (aiError) {
-      console.error("AI tips fetch failed:", aiError);
-      return res.status(500).json({ error: "Failed to fetch AI tips" });
+      aiTips = "Unable to generate AI tips at the moment.";
     }
 
-    // Return data
-    return res.status(200).json({
+    const responseData = {
       speedScore,
       aiTips,
       javlinScore: speedScore,
-    });
+    };
+
+    // Cache response
+    cache[siteUrl] = {
+      timestamp: Date.now(),
+      data: responseData,
+    };
+
+    return res.status(200).json(responseData);
   } catch (err) {
     console.error("Unexpected error:", err);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
+
 
 
 
