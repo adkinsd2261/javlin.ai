@@ -1,57 +1,56 @@
 import React from "react";
 
 export default function JavlinScoreCard({ score }) {
-  // Ensure score is a number and clamp between 0 and 100 for SVG ring
-  const numericScore = Math.min(Math.max(Number(score) || 0, 0), 100);
-  
-  // Format the score for display (no decimals, just integer)
-  const displayScore = numericScore.toLocaleString("en-US", {
-    maximumFractionDigits: 0,
-  });
+  const circleRadius = 50;
+  const circleCircumference = 2 * Math.PI * circleRadius;
+  const progress = (score / 100) * circleCircumference;
 
   return (
-    <div className="flex flex-col items-center justify-center bg-gray-900 rounded-xl p-6 shadow-lg max-w-xs w-full">
-      {/* Label */}
-      <div className="text-gray-400 text-xs uppercase font-semibold mb-4 tracking-wide select-none">
-        Javlin Score
-      </div>
-
-      {/* Circular Score Ring */}
-      <div className="relative w-28 h-28">
-        <svg className="w-28 h-28 transform -rotate-90" viewBox="0 0 100 100">
-          {/* Background circle */}
-          <circle
-            className="text-gray-800"
-            strokeWidth="10"
-            stroke="currentColor"
-            fill="transparent"
-            r="45"
-            cx="50"
-            cy="50"
-          />
-          {/* Foreground progress ring */}
-          <circle
-            className="text-blue-600"
-            strokeWidth="10"
-            strokeDasharray={`${numericScore * 2.82} 282`}
-            strokeLinecap="round"
-            stroke="currentColor"
-            fill="transparent"
-            r="45"
-            cx="50"
-            cy="50"
-            style={{ transition: "stroke-dasharray 0.7s ease" }}
-          />
-        </svg>
-
-        {/* Centered score number */}
-        <div className="absolute inset-0 flex items-center justify-center text-white text-4xl font-extrabold select-none transition-all duration-700">
-          {displayScore}
-        </div>
-      </div>
+    <div className="bg-gray-900 rounded-xl p-6 max-w-xs shadow-lg shadow-blue-600/30">
+      <h3 className="text-xs uppercase tracking-widest text-gray-400 mb-2">Javlin Score</h3>
+      <svg
+        className="mx-auto block"
+        width={120}
+        height={120}
+        viewBox="0 0 120 120"
+      >
+        <circle
+          cx="60"
+          cy="60"
+          r={circleRadius}
+          stroke="#1e293b"
+          strokeWidth="10"
+          fill="none"
+        />
+        <circle
+          cx="60"
+          cy="60"
+          r={circleRadius}
+          stroke="#2563eb"
+          strokeWidth="10"
+          fill="none"
+          strokeDasharray={circleCircumference}
+          strokeDashoffset={circleCircumference - progress}
+          strokeLinecap="round"
+          transform="rotate(-90 60 60)"
+        />
+        <text
+          x="60"
+          y="65"
+          textAnchor="middle"
+          fontSize="36"
+          fontWeight="bold"
+          fill="white"
+          className="select-none"
+        >
+          {score}
+        </text>
+      </svg>
+      <p className="text-center mt-3 text-gray-400">July 2025</p>
     </div>
   );
 }
+
 
 
 

@@ -1,126 +1,121 @@
 import React, { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import JavlinScoreCard from "../components/JavlinScoreCard";
-import SpeedScoreCard from "../components/SpeedScoreCard";
-import TrafficKpiCard from "../components/TrafficKpiCard";
+import KpiCard from "../components/KpiCard";
 import ProgressChartCard from "../components/ProgressChartCard";
-import AIRecommendationsCard from "../components/AIRecommendationsCard";
-import EarningsCard from "../components/EarningsCard";
-import CompetitorBenchmarkCard from "../components/CompetitorBenchmarkCard";
+import ToolCard from "../components/ToolCard";
+
+// Format helpers
+const formatNumber = (num) => Number(num).toLocaleString("en-US");
+const formatPercent = (num) =>
+  `${Number(num).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
 export default function DashboardPage() {
-  const [inputUrl, setInputUrl] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [inputUrl, setInputUrl] = useState("");
 
-  const fetchInsights = async () => {
+  const handleFetchData = async () => {
     if (!inputUrl) {
       setError("Please enter a website URL.");
       return;
     }
     setLoading(true);
     setError("");
+    setData(null);
+
     try {
       const res = await fetch(`/api/valuation-summary?url=${encodeURIComponent(inputUrl)}`);
-      const json = await res.json();
-      if (!res.ok) {
-        throw new Error(json.error || "Failed to fetch data");
-      }
-      setData(json);
-    } catch (e) {
-      setError(e.message);
+      const result = await res.json();
+      if (res.ok) setData(result);
+      else setError(result.error || "Failed to load data.");
+    } catch {
+      setError("Server error while fetching data.");
     } finally {
       setLoading(false);
     }
   };
 
-  // Sample mock AI recommendations (replace with real from backend)
-  const mockAIRecommendations = [
-    "Increase backlink count to at least 30",
-    "Improve page load speed to under 3 seconds",
-    "Add alt text to 20 images that are missing",
-    "Update your top-performing content from 2024",
-  ];
-
-  // Mock competitor benchmark data
-  const mockCompetitorData = [
-    { name: "Bestboy.com", score: 86 },
-    { name: "Example.com", score: 79 },
+  const tools = [
+    { title: "SEO Analyzer", description: "Analyze SEO performance.", link: "/tools/seo-analyzer" },
+    { title: "Site Health", description: "Check your site's health.", link: "/tools/site-health" },
+    { title: "Content Generator", description: "Generate tailored content.", link: "/tools/content-generator" },
   ];
 
   return (
     <div className="flex min-h-screen bg-black text-white">
       <Sidebar />
-      <main className="flex-grow max-w-7xl mx-auto p-8">
-        <h1 className="text-4xl font-extrabold mb-4">Dashboard</h1>
-        <p className="mb-8 text-gray-400 max-w-xl">
-          Enter a website below to get live AI and PageSpeed insights.
-        </p>
+      <main className="flex-grow p-8 max-w-7xl mx-auto">
+        <header className="mb-8">
+          <h1 className="text-4xl font-extrabold mb-2">Dashboard</h1>
+          <p className="text-gray-400 max-w-xl">
+            Enter a website below to get live AI and PageSpeed insights.
+          </p>
+        </header>
 
-        {/* Input and button */}
-        <div className="flex gap-4 mb-12 max-w-3xl">
+        {/* Input */}
+        <div className="flex gap-4 mb-8">
           <input
             type="text"
             placeholder="https://example.com"
             value={inputUrl}
             onChange={(e) => setInputUrl(e.target.value)}
-            className="flex-grow bg-gray-900 rounded-lg px-5 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            className="flex-grow bg-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
-            onClick={fetchInsights}
+            onClick={handleFetchData}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg px-6 py-3 font-semibold"
+            className="bg-blue-600 hover:bg-blue-700 rounded-lg px-6 py-3 text-white font-semibold disabled:opacity-60 disabled:cursor-not-allowed transition"
           >
             {loading ? "Loading..." : "Get Insights"}
           </button>
         </div>
-        {error && <p className="text-red-500 mb-6 font-semibold">{error}</p>}
 
-        {/* Data grid */}
+        {/* Loading & Error */}
+        {loading && <p className="text-blue-400 font-semibold mb-6">Loading insights...</p>}
+        {error && <p className="text-red-500 font-semibold mb-6">{error}</p>}
+
+        {/* Data */}
         {data && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Left column: Scores */}
-            <div className="space-y-6">
-              <JavlinScoreCard score={data.javlinScore || 0} />
-              <SpeedScoreCard
-                score={data.speedScore || 0}
+          <>
+            <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+              <JavlinScoreCard score={formatNumber(data.javlinScore || 0)} />
+              <KpiCard
+                title="Speed Score"
+                value={formatPercent(data.speedScore || 0)}
                 chartData={data.speedChart}
               />
-              <TrafficKpiCard
-                traffic={data.traffic || 0}
-                chartData={data.trafficChart}
+              <ProgressChartCard
+                title="Progress"
+                value={data.progressData?.value || 0}
+                dataPoints={data.progressData?.dataPoints || []}
+                labels={data.progressData?.labels || []}
               />
-              <ProgressChartCard progress={data.progress || 0} />
-            </div>
+            </section>
 
-            {/* Middle column: Recommendations & Earnings */}
-            <div className="space-y-6">
-              <AIRecommendationsCard
-                recommendations={data.aiRecommendations || mockAIRecommendations}
-              />
-              <EarningsCard earnings={data.earnings || 0} />
-            </div>
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold mb-4">AI Tips</h2>
+              <p className="whitespace-pre-wrap leading-relaxed text-gray-300 p-6 bg-gray-900 rounded-lg shadow-md shadow-blue-600/20">
+                {data.aiTips}
+              </p>
+            </section>
 
-            {/* Right column: Competitor Benchmark */}
-            <div className="space-y-6">
-              <CompetitorBenchmarkCard
-                competitors={data.competitors || mockCompetitorData}
-              />
-            </div>
-          </div>
+            <section>
+              <h2 className="text-2xl font-bold mb-6">AI Tools</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {tools.map((tool) => (
+                  <ToolCard key={tool.title} {...tool} />
+                ))}
+              </div>
+            </section>
+          </>
         )}
-
-        {/* Footer branding */}
-        <footer className="mt-16 text-center text-gray-600 space-x-6">
-          <span>Heined by Google</span>
-          <span>Lighthouse</span>
-          <span>Trusted by Trusted</span>
-        </footer>
       </main>
     </div>
   );
 }
+
 
 
 
