@@ -6,35 +6,39 @@ import TrafficKpiCard from "../components/TrafficKpiCard";
 import ProgressChartCard from "../components/ProgressChartCard";
 import AIRecommendationsCard from "../components/AIRecommendationsCard";
 import EarningsCard from "../components/EarningsCard";
+import CompetitorBenchmarkCard from "../components/CompetitorBenchmarkCard";
 import PageSpeedCard from "../components/PageSpeedCard";
 import ToolCard from "../components/ToolCard";
 
-// Helper formatting functions
-function formatNumber(num) {
-  return Number(num).toLocaleString("en-US");
-}
+// Helpers for formatting numbers, percents, currency
+const formatNumber = (num) => Number(num).toLocaleString("en-US");
+const formatPercent = (num) =>
+  `${Number(num).toLocaleString("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
+const formatCurrency = (num) =>
+  Number(num).toLocaleString("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 });
 
-function formatPercent(num) {
-  return `${Number(num).toLocaleString("en-US", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`;
-}
-
-function formatDollars(num) {
-  return Number(num).toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-  });
-}
+// Parse AI tips text into bullet points (split by lines, filter empty)
+const parseAITips = (text) => {
+  if (!text) return [];
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+};
 
 export default function DashboardPage() {
+  const [inputUrl, setInputUrl] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [inputUrl, setInputUrl] = useState("");
 
+  const tools = [
+    { title: "SEO Analyzer", description: "Analyze SEO performance.", link: "/tools/seo-analyzer" },
+    { title: "Site Health", description: "Check your site's health.", link: "/tools/site-health" },
+    { title: "Content Generator", description: "Generate tailored content.", link: "/tools/content-generator" },
+  ];
+
+  // Fetch insights from backend API
   const handleFetchData = async () => {
     if (!inputUrl) {
       setError("Please enter a website URL.");
@@ -45,65 +49,42 @@ export default function DashboardPage() {
     setData(null);
 
     try {
-      const res = await fetch(
-        `/api/valuation-summary?url=${encodeURIComponent(inputUrl)}`
-      );
+      const res = await fetch(`/api/valuation-summary?url=${encodeURIComponent(inputUrl)}`);
       const result = await res.json();
-
       if (res.ok) {
         setData(result);
       } else {
         setError(result.error || "Failed to load data.");
       }
-    } catch (err) {
+    } catch {
       setError("Server error while fetching data.");
     } finally {
       setLoading(false);
     }
   };
 
-  const tools = [
-    { title: "SEO Analyzer", description: "Analyze SEO performance.", link: "/tools/seo-analyzer" },
-    { title: "Site Health", description: "Check your site's health.", link: "/tools/site-health" },
-    { title: "Content Generator", description: "Generate tailored content.", link: "/tools/content-generator" },
-  ];
-
-  // Dummy fallback data for charts and KPIs
-  const mockLineData = [
-    { month: "Jan", value: 30 },
-    { month: "Feb", value: 45 },
-    { month: "Mar", value: 60 },
-    { month: "Apr", value: 55 },
-    { month: "May", value: 75 },
-  ];
-
-  const mockRecommendations = [
-    "Increase backlink count to at least 30",
-    "Improve page load speed to under 3 seconds",
-    "Add alt text to 20 images missing descriptions",
-    "Update your top-performing content from 2024",
-  ];
+  // Extract AI tips array from raw text
+  const aiTipsList = data ? parseAITips(data.aiTips) : [];
 
   return (
     <div className="flex min-h-screen bg-black text-white">
       <Sidebar />
 
       <main className="flex-grow p-8 max-w-7xl mx-auto">
+        {/* Header */}
         <header className="mb-8">
           <h1 className="text-4xl font-extrabold mb-2">Dashboard</h1>
-          <p className="text-gray-400 max-w-xl">
-            Enter a website below to get live AI and PageSpeed insights.
-          </p>
+          <p className="text-gray-400 max-w-xl">Enter a website below to get live AI and PageSpeed insights.</p>
         </header>
 
-        {/* Input and Button */}
-        <div className="flex gap-4 mb-8 max-w-3xl">
+        {/* Input form */}
+        <div className="flex gap-4 mb-12 max-w-4xl">
           <input
             type="text"
             placeholder="https://example.com"
             value={inputUrl}
             onChange={(e) => setInputUrl(e.target.value)}
-            className="flex-grow bg-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-grow bg-gray-900 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             onClick={handleFetchData}
@@ -114,68 +95,65 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Loading and Error */}
-        {loading && <p className="text-blue-400 font-semibold mb-6">Loading insights...</p>}
+        {/* Error message */}
         {error && <p className="text-red-500 font-semibold mb-6">{error}</p>}
 
-        {/* Results */}
+        {/* Dashboard grid */}
         {data && (
-          <>
-            {/* KPI Cards */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-              <JavlinScoreCard score={formatNumber(data.javlinScore || 0)} />
-              <KpiCard
-                title="Speed Score"
-                value={formatPercent(data.speedScore || 0)}
-                chartData={data.speedChart || mockLineData}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            {/* Left main column (8/12) */}
+            <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Javlin Score */}
+              <JavlinScoreCard score={data.javlinScore || 0} />
+
+              {/* Speed Score */}
+              <PageSpeedCard
+                score={data.speedScore || 0}
+                chartData={data.speedChart || []}
+                loading={loading}
               />
+
+              {/* Traffic KPI */}
               <TrafficKpiCard
                 title="Traffic"
                 value={formatNumber(data.traffic || 0)}
-                chartData={data.trafficChart || mockLineData}
+                chartData={data.trafficChart || []}
               />
-              <ProgressChartCard progressData={data.progressChart || mockLineData} />
-            </section>
 
-            {/* Secondary KPI Section */}
-            <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-              <AIRecommendationsCard
-                title="AI Recommendations"
-                recommendations={data.aiRecommendations || mockRecommendations}
+              {/* Progress Chart */}
+              <ProgressChartCard
+                title="Progress"
+                chartData={data.progressChart || []}
+                value={data.progressValue || 0}
               />
+
+              {/* Earnings Card */}
               <EarningsCard
-                earnings={data.earnings || 0}
+                earnings={formatCurrency(data.earnings || 0)}
                 pageSpeed={data.pageSpeed || 0}
               />
-              <PageSpeedCard
-                speed={data.pageSpeed || 0}
-                lastUpdated={data.pageSpeedLastUpdated}
+            </div>
+
+            {/* Right sidebar column (4/12) */}
+            <div className="md:col-span-4 flex flex-col gap-6">
+              {/* AI Recommendations */}
+              <AIRecommendationsCard
+                title="AI Recommendations"
+                recommendations={aiTipsList}
               />
-            </section>
 
-            {/* AI Tips Section */}
-            <section className="mb-12">
-              <h2 className="text-2xl font-bold mb-4">AI Tips</h2>
-              <p className="whitespace-pre-wrap leading-relaxed text-gray-300 p-6 bg-gray-900 rounded-lg shadow-md shadow-blue-600/20">
-                {data.aiTips || "No AI tips available."}
-              </p>
-            </section>
-
-            {/* AI Tools */}
-            <section>
-              <h2 className="text-2xl font-bold mb-6">AI Tools</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl">
-                {tools.map((tool) => (
-                  <ToolCard key={tool.title} {...tool} />
-                ))}
-              </div>
-            </section>
-          </>
+              {/* Competitor Benchmark */}
+              <CompetitorBenchmarkCard
+                competitors={data.competitorBenchmarks || []}
+              />
+            </div>
+          </div>
         )}
       </main>
     </div>
   );
 }
+
 
 
 
