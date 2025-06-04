@@ -2,28 +2,11 @@ import React, { useState } from "react";
 import Sidebar from "../components/Sidebar";
 import JavlinScoreCard from "../components/JavlinScoreCard";
 import KpiCard from "../components/KpiCard";
-import ToolCard from "../components/ToolCard";
 import TrafficKpiCard from "../components/TrafficKpiCard";
-import PageSpeedCard from "../components/PageSpeedCard";
-
-function formatNumber(num) {
-  return Number(num).toLocaleString("en-US");
-}
-
-function formatPercent(num) {
-  return `${Number(num).toLocaleString("en-US", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })}%`;
-}
-
-function formatDollars(num) {
-  return Number(num).toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-  });
-}
+import EarningsCard from "../components/EarningsCard";
+import ProgressChartCard from "../components/ProgressChartCard";
+import CompetitorBenchmarkCard from "../components/CompetitorBenchmarkCard";
+import AIRecommendationsCard from "../components/AIRecommendationsCard";
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
@@ -31,49 +14,28 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [inputUrl, setInputUrl] = useState("");
 
-  const tools = [
-    {
-      title: "SEO Analyzer",
-      description: "Analyze SEO performance.",
-      link: "/tools/seo-analyzer",
-    },
-    {
-      title: "Site Health",
-      description: "Check your site's health.",
-      link: "/tools/site-health",
-    },
-    {
-      title: "Content Generator",
-      description: "Generate tailored content.",
-      link: "/tools/content-generator",
-    },
-  ];
+  // Formatting helpers
+  const formatPercent = (num) =>
+    `${Number(num).toLocaleString("en-US", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    })}%`;
 
-  // Dummy data to show if no API data
-  const mockLineData = [
-    { month: "Jan", value: 30 },
-    { month: "Feb", value: 45 },
-    { month: "Mar", value: 60 },
-    { month: "Apr", value: 55 },
-    { month: "May", value: 75 },
-  ];
+  const formatNumber = (num) =>
+    Number(num).toLocaleString("en-US");
 
+  // Fetch dashboard data
   const handleFetchData = async () => {
     if (!inputUrl) {
       setError("Please enter a website URL.");
       return;
     }
-
     setLoading(true);
     setError("");
     setData(null);
-
     try {
-      const res = await fetch(
-        `/api/valuation-summary?url=${encodeURIComponent(inputUrl)}`
-      );
+      const res = await fetch(`/api/valuation-summary?url=${encodeURIComponent(inputUrl)}`);
       const result = await res.json();
-
       if (res.ok) {
         setData(result);
       } else {
@@ -81,9 +43,8 @@ export default function DashboardPage() {
       }
     } catch (err) {
       setError("Server error while fetching data.");
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   return (
@@ -98,8 +59,8 @@ export default function DashboardPage() {
           </p>
         </header>
 
-        {/* Input & Button */}
-        <div className="flex gap-4 mb-8">
+        {/* Input and Button */}
+        <div className="flex gap-4 mb-8 max-w-4xl">
           <input
             type="text"
             placeholder="https://example.com"
@@ -116,7 +77,7 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Loading & Error */}
+        {/* Loading and Error */}
         {loading && (
           <p className="text-blue-400 font-semibold mb-6">Loading insights...</p>
         )}
@@ -124,60 +85,47 @@ export default function DashboardPage() {
 
         {/* Results */}
         {data && (
-          <>
-            {/* Top KPI Section */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
-              <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50">
-                <JavlinScoreCard score={formatNumber(data.javlinScore || 0)} />
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+            {/* Left Main Cards */}
+            <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
+              <JavlinScoreCard score={data.javlinScore || 0} />
+              <KpiCard
+                title="Speed Score"
+                value={formatPercent(data.speedScore || 0)}
+                chartData={data.speedChart}
+              />
+              <TrafficKpiCard
+                title="Traffic"
+                value={formatNumber(data.traffic || 0)}
+                chartData={data.trafficChart}
+              />
+              <EarningsCard
+                earnings={data.earnings}
+                pageSpeed={data.pageSpeed}
+              />
+            </div>
 
-              <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50">
-                <KpiCard
-                  title="Speed Score"
-                  value={formatPercent(data.speedScore || 0)}
-                  chartData={data.speedChart || mockLineData}
-                />
-              </div>
+            {/* Right Sidebar Cards */}
+            <div className="md:col-span-4 flex flex-col gap-6">
+              <AIRecommendationsCard recommendations={data.aiRecommendations || []} />
+              <ProgressChartCard progressData={data.progressData} />
+              <CompetitorBenchmarkCard competitors={data.competitors} />
+            </div>
 
-              <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50">
-                <TrafficKpiCard
-                  title="Traffic"
-                  value={formatNumber(data.traffic || 0)}
-                  chartData={data.trafficChart || mockLineData}
-                />
-              </div>
-
-              <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50">
-                <PageSpeedCard
-                  pageSpeed={data.pageSpeed || 0}
-                  avgLoadTime={data.avgLoadTime || 0}
-                />
-              </div>
-            </section>
-
-            {/* AI Tips Section */}
-            <section className="mb-12">
-              <h2 className="text-2xl font-bold mb-4">AI Recommendations</h2>
+            {/* AI Tips - full width */}
+            <section className="md:col-span-12 mt-8">
+              <h2 className="text-2xl font-bold mb-4">AI Tips</h2>
               <p className="whitespace-pre-wrap leading-relaxed text-gray-300 p-6 bg-gray-900 rounded-lg shadow-md shadow-blue-600/20">
                 {data.aiTips}
               </p>
             </section>
-
-            {/* AI Tools Section */}
-            <section>
-              <h2 className="text-2xl font-bold mb-6">AI Tools</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {tools.map((tool) => (
-                  <ToolCard key={tool.title} {...tool} />
-                ))}
-              </div>
-            </section>
-          </>
+          </div>
         )}
       </main>
     </div>
   );
 }
+
 
 
 
