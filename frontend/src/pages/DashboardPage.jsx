@@ -8,6 +8,26 @@ import AIRecommendationsCard from "../components/AIRecommendationsCard";
 import EarningsCard from "../components/EarningsCard";
 import CompetitorBenchmarkCard from "../components/CompetitorBenchmarkCard";
 
+// Formatting helpers
+function formatNumber(num) {
+  if (num == null) return "0";
+  return Number(num).toLocaleString("en-US");
+}
+
+function formatPercent(num) {
+  if (num == null) return "0.0%";
+  return `${Number(num).toFixed(1)}%`;
+}
+
+function formatDollars(num) {
+  if (num == null) return "$0";
+  return Number(num).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+  });
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [inputUrl, setInputUrl] = useState("");
@@ -33,7 +53,7 @@ export default function DashboardPage() {
       } else {
         setError(result.error || "Failed to load data.");
       }
-    } catch {
+    } catch (err) {
       setError("Server error while fetching data.");
     } finally {
       setLoading(false);
@@ -52,7 +72,6 @@ export default function DashboardPage() {
     competitorBenchmark = { items: [] },
   } = data || {};
 
-  // Ensure recommendations is always an array
   const aiRecommendationsSafe = Array.isArray(aiRecommendations) ? aiRecommendations : [];
 
   return (
@@ -75,29 +94,60 @@ export default function DashboardPage() {
             value={inputUrl}
             onChange={(e) => setInputUrl(e.target.value)}
             className="flex-grow bg-gray-900 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-600"
+            disabled={loading}
           />
           <button
             onClick={fetchDashboardData}
             disabled={loading}
             className="bg-blue-600 hover:bg-blue-700 rounded-lg px-6 py-3 font-semibold disabled:opacity-60 disabled:cursor-not-allowed transition"
           >
-            {loading ? "Loading..." : "Get Insights"}
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                  ></path>
+                </svg>
+                Loading...
+              </span>
+            ) : (
+              "Get Insights"
+            )}
           </button>
         </div>
 
         {/* Error */}
-        {error && <p className="text-red-500 font-semibold mb-6">{error}</p>}
+        {error && (
+          <p className="text-red-500 font-semibold mb-6 select-none" role="alert">
+            {typeof error === "string" ? error : "An unexpected error occurred."}
+          </p>
+        )}
 
         {/* Data Display */}
-        {data && (
+        {data ? (
           <>
             {/* Top KPI cards */}
             <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-              <JavlinScoreCard score={javlinScore} />
-              <SpeedScoreCard score={speedScore} />
-              <TrafficKpiCard value={traffic.value} chartData={traffic.chart || []} />
+              <JavlinScoreCard score={formatNumber(javlinScore)} />
+              <SpeedScoreCard score={formatPercent(speedScore)} />
+              <TrafficKpiCard value={formatNumber(traffic.value)} chartData={traffic.chart || []} />
               <ProgressChartCard
-                value={progress.value}
+                value={formatNumber(progress.value)}
                 dataPoints={progress.dataPoints || []}
                 labels={progress.labels || []}
               />
@@ -106,7 +156,7 @@ export default function DashboardPage() {
             {/* Middle row */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
               <AIRecommendationsCard recommendations={aiRecommendationsSafe} />
-              <EarningsCard value={earnings.value} chartData={earnings.chart || []} />
+              <EarningsCard value={formatDollars(earnings.value)} chartData={earnings.chart || []} />
             </section>
 
             {/* Bottom row */}
@@ -129,11 +179,17 @@ export default function DashboardPage() {
               </section>
             )}
           </>
+        ) : (
+          // Empty state before loading data
+          <div className="mt-20 text-gray-600 text-center select-none">
+            Enter a website URL and click "Get Insights" to see dashboard data.
+          </div>
         )}
       </main>
     </div>
   );
 }
+
 
 
 

@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function AIRecommendations({ recommendations }) {
+export default function AIRecommendations({ recommendations = [] }) {
   return (
     <div className="bg-gray-900 rounded-xl p-6 shadow-lg max-w-xs w-full">
       <h3 className="text-gray-400 text-xs mb-6 uppercase tracking-wide font-semibold select-none">
@@ -33,3 +33,4 @@ export default function AIRecommendations({ recommendations }) {
     </div>
   );
 }
+
