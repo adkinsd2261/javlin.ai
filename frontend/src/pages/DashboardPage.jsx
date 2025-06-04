@@ -52,6 +52,8 @@ export default function DashboardPage() {
     competitorBenchmark = { items: [] },
   } = data || {};
 
+  const aiRecommendationsSafe = Array.isArray(aiRecommendations) ? aiRecommendations : [];
+
   return (
     <div className="flex min-h-screen bg-black text-white">
       <Sidebar />
@@ -88,6 +90,7 @@ export default function DashboardPage() {
         {/* Data display */}
         {data && (
           <>
+            {/* Top KPIs */}
             <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
               <JavlinScoreCard score={javlinScore} />
               <SpeedScoreCard score={speedScore} />
@@ -99,12 +102,14 @@ export default function DashboardPage() {
               />
             </section>
 
+            {/* Middle row */}
             <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-              <AIRecommendationsCard recommendations={aiRecommendations} />
+              <AIRecommendationsCard recommendations={aiRecommendationsSafe} />
               <EarningsCard value={earnings.value} chartData={earnings.chart || []} />
             </section>
 
-            <section className="max-w-md">
+            {/* Bottom row */}
+            <section className="max-w-md mb-12">
               <CompetitorBenchmarkCard items={competitorBenchmark.items || []} />
             </section>
 
@@ -112,9 +117,14 @@ export default function DashboardPage() {
             {aiTips && (
               <section className="mt-12 max-w-3xl">
                 <h2 className="text-2xl font-bold mb-4">AI Tips</h2>
-                <p className="whitespace-pre-wrap leading-relaxed text-gray-300 p-6 bg-gray-900 rounded-lg shadow-md shadow-blue-600/20">
-                  {aiTips}
-                </p>
+                <ul className="bg-gray-900 rounded-lg shadow-md shadow-blue-600/20 p-6 space-y-3 text-gray-300 list-disc list-inside">
+                  {aiTips
+                    .split("\n")
+                    .filter(Boolean)
+                    .map((tip, idx) => (
+                      <li key={idx}>{tip.trim()}</li>
+                    ))}
+                </ul>
               </section>
             )}
           </>
@@ -123,6 +133,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 
