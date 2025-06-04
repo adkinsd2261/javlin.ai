@@ -4,27 +4,29 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Utility to add timeout to fetch
-async function timeoutFetch(url, options = {}, timeout = 15000) {
+// Simple in-memory cache: { [url]: { data: ..., timestamp: ... } }
+const cache = {};
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Timeout wrapper for fetch
+async function timeoutFetch(url, options = {}, timeout = 25000) {
   return Promise.race([
     fetch(url, options),
-    new Promise((_, reject) =>
-      setTimeout(() => reject(new Error("Fetch timeout")), timeout)
-    ),
+    new Promise((_, reject) => setTimeout(() => reject(new Error("Fetch timeout")), timeout)),
   ]);
 }
 
-// Retry helper for PageSpeed API fetch with timeout and fallback
-async function fetchPageSpeedData(url, apiKey, retries = 2, delay = 1500) {
+// Fetch PageSpeed data with retry and timeout
+async function fetchPageSpeedData(url, apiKey, retries = 3, delayMs = 1500) {
   for (let i = 0; i < retries; i++) {
     try {
-      console.log(`Attempt ${i + 1} fetching PageSpeed for: ${url}`);
       const response = await timeoutFetch(
-        `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(
-          url
-        )}&key=${apiKey}`,
+        `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&key=${apiKey}`,
         {},
-        15000 // 15 seconds timeout per fetch attempt
+        25000
       );
 
       if (response.ok) {
@@ -32,33 +34,16 @@ async function fetchPageSpeedData(url, apiKey, retries = 2, delay = 1500) {
       } else {
         const errorData = await response.json();
         if (errorData.error && errorData.error.code === 500 && i < retries - 1) {
-          // Wait before retrying
-          await new Promise((res) => setTimeout(res, delay));
+          await delay(delayMs);
         } else {
           throw new Error(`PageSpeed API error: ${JSON.stringify(errorData)}`);
         }
       }
     } catch (err) {
-      console.error(`Attempt ${i + 1} failed:`, err.message);
-      if (i === retries - 1) {
-        // Instead of throwing, return fallback object
-        return {
-          lighthouseResult: {
-            categories: {
-              performance: {
-                score: 0,
-              },
-            },
-          },
-          fallback: true,
-          message: "PageSpeed API timeout or unreachable, showing fallback data.",
-        };
-      }
-      // Wait before retrying on fetch timeout or error
-      await new Promise((res) => setTimeout(res, delay));
+      if (i === retries - 1) throw err;
+      await delay(delayMs);
     }
   }
-  // Should never reach here
   throw new Error("Failed to fetch PageSpeed data after retries");
 }
 
@@ -73,7 +58,14 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing url parameter" });
     }
 
-    // Fetch PageSpeed data with retry and timeout
+    // Check cache first (valid for 10 minutes)
+    const cacheEntry = cache[siteUrl];
+    const now = Date.now();
+    if (cacheEntry && now - cacheEntry.timestamp < 10 * 60 * 1000) {
+      return res.status(200).json(cacheEntry.data);
+    }
+
+    // Fetch fresh PageSpeed data
     let pagespeedData;
     try {
       pagespeedData = await fetchPageSpeedData(siteUrl, process.env.GOOGLE_PAGESPEED_API_KEY);
@@ -82,53 +74,47 @@ export default async function handler(req, res) {
     }
 
     // Extract performance score safely
-    const speedScore =
-      Math.round(
-        pagespeedData?.lighthouseResult?.categories?.performance?.score * 100
-      ) || 0;
+    const speedScore = Math.round(pagespeedData?.lighthouseResult?.categories?.performance?.score * 100) || 0;
 
-    if (pagespeedData.fallback) {
-      console.warn("Using fallback PageSpeed data due to timeout.");
+    // Generate AI tips with OpenAI
+    let aiTips = "";
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: "You are an expert web performance and SEO analyst providing actionable tips.",
+          },
+          {
+            role: "user",
+            content: `The website has a speed performance score of ${speedScore}. Give me 3 clear, actionable improvement tips.`,
+          },
+        ],
+      });
+      aiTips = completion.choices[0].message.content;
+    } catch (aiError) {
+      return res.status(500).json({ error: "Failed to fetch AI tips" });
     }
 
-    // Generate AI tips with OpenAI, skip if fallback
-    let aiTips = "Could not generate AI tips due to PageSpeed API timeout.";
-
-    if (!pagespeedData.fallback) {
-      try {
-        const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content: "You are an expert web performance and SEO analyst providing actionable tips.",
-            },
-            {
-              role: "user",
-              content: `The website has a speed performance score of ${speedScore}. Give me 3 clear, actionable improvement tips.`,
-            },
-          ],
-        });
-        aiTips = completion.choices[0].message.content;
-      } catch (aiError) {
-        console.error("OpenAI fetch error:", aiError);
-        aiTips = "Failed to fetch AI tips";
-      }
-    }
-
-    // Return data
-    return res.status(200).json({
+    // Prepare response payload
+    const responsePayload = {
       speedScore,
       aiTips,
       javlinScore: speedScore,
-      fallback: pagespeedData.fallback || false,
-      message: pagespeedData.message || "",
-    });
+    };
+
+    // Cache the result
+    cache[siteUrl] = { data: responsePayload, timestamp: now };
+
+    // Send response
+    return res.status(200).json(responsePayload);
   } catch (err) {
     console.error("Unexpected error:", err);
     return res.status(500).json({ error: "Internal Server Error" });
   }
 }
+
 
 
 

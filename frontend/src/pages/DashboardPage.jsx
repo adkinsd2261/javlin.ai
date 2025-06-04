@@ -16,14 +16,6 @@ function formatPercent(num) {
   })}%`;
 }
 
-function formatDollars(num) {
-  return Number(num).toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-  });
-}
-
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -59,24 +51,12 @@ export default function DashboardPage() {
   };
 
   const tools = [
-    {
-      title: "SEO Analyzer",
-      description: "Analyze SEO performance.",
-      link: "/tools/seo-analyzer",
-    },
-    {
-      title: "Site Health",
-      description: "Check your site's health.",
-      link: "/tools/site-health",
-    },
-    {
-      title: "Content Generator",
-      description: "Generate tailored content.",
-      link: "/tools/content-generator",
-    },
+    { title: "SEO Analyzer", description: "Analyze SEO performance.", link: "/tools/seo-analyzer" },
+    { title: "Site Health", description: "Check your site's health.", link: "/tools/site-health" },
+    { title: "Content Generator", description: "Generate tailored content.", link: "/tools/content-generator" },
   ];
 
-  // Dummy chart data for KPI cards - replace with real data later
+  // Dummy chart data for KPI cards (replace with real data later)
   const mockLineData = [
     { month: "Jan", value: 30 },
     { month: "Feb", value: 45 },
@@ -124,12 +104,11 @@ export default function DashboardPage() {
         {/* Results */}
         {data && (
           <>
-            {/* Show fallback warning if data is partial */}
+            {/* Fallback warning */}
             {data.fallback && (
-              <div className="mb-6 p-4 bg-yellow-700 text-yellow-100 rounded-md font-semibold">
-                ⚠️ PageSpeed API timed out or failed, showing fallback data. Try
-                again later for full results.
-              </div>
+              <p className="mb-4 text-yellow-400 font-semibold select-none">
+                ⚠️ Showing approximate data due to API issues. Please try again later.
+              </p>
             )}
 
             {/* KPI Cards */}
@@ -144,7 +123,7 @@ export default function DashboardPage() {
                   chartData={data.speedChart || mockLineData}
                 />
               </div>
-              {/* Add more KPIs here, e.g. traffic, revenue */}
+              {/* Add other KPIs here */}
             </section>
 
             {/* AI Tips Section */}
@@ -170,6 +149,8 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+
 
 
 
