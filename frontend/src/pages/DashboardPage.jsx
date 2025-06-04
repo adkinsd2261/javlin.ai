@@ -4,11 +4,10 @@ import JavlinScoreCard from "../components/JavlinScoreCard";
 import KpiCard from "../components/KpiCard";
 import ToolCard from "../components/ToolCard";
 import PageSpeedCard from "../components/PageSpeedCard";
-import CompetitorBenchmark from "../components/CompetitorBenchmark";
-import AIRecommendations from "../components/AIRecommendations";
-import EarningsCard from "../components/EarningsCard";
+import TrafficPicCard from "../components/TrafficPicCard";
+import RevenueCard from "../components/RevenueCard";
 
-// Helper formatters
+// Helper formatting functions
 function formatNumber(num) {
   return Number(num).toLocaleString("en-US");
 }
@@ -28,11 +27,25 @@ function formatDollars(num) {
   });
 }
 
+// Loading Skeleton Components
+function KpiSkeleton() {
+  return (
+    <div className="bg-gray-800 rounded-xl p-6 animate-pulse h-40" />
+  );
+}
+
+function TipsSkeleton() {
+  return (
+    <div className="bg-gray-800 rounded-lg p-6 animate-pulse h-32 mt-6" />
+  );
+}
+
 export default function DashboardPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [inputUrl, setInputUrl] = useState("");
+  const [showFullTips, setShowFullTips] = useState(false);
 
   const handleFetchData = async () => {
     if (!inputUrl) {
@@ -43,6 +56,7 @@ export default function DashboardPage() {
     setLoading(true);
     setError("");
     setData(null);
+    setShowFullTips(false);
 
     try {
       const res = await fetch(
@@ -62,120 +76,148 @@ export default function DashboardPage() {
     }
   };
 
-  // Dummy fallback data for placeholders while building
-  const mockLineData = [
-    { month: "Jan", value: 30 },
-    { month: "Feb", value: 45 },
-    { month: "Mar", value: 60 },
-    { month: "Apr", value: 55 },
-    { month: "May", value: 75 },
+  const tools = [
+    {
+      title: "SEO Analyzer",
+      description: "Analyze SEO performance.",
+      link: "/tools/seo-analyzer",
+    },
+    {
+      title: "Site Health",
+      description: "Check your site's health.",
+      link: "/tools/site-health",
+    },
+    {
+      title: "Content Generator",
+      description: "Generate tailored content.",
+      link: "/tools/content-generator",
+    },
   ];
 
-  const mockCompetitors = [
-    { name: "Bestboy.com", score: 86 },
-    { name: "example.com", score: 79 },
-  ];
-
-  const mockRecommendations = [
-    { text: "Increase backlink count to at least 30", link: "#" },
-    { text: "Improve page load speed to under 3 seconds", link: "#" },
-    { text: "Add alt text to 20 images missing descriptions", link: "#" },
-    { text: "Update your top-performing content from 2024", link: "#" },
-  ];
+  // Utility to format AI tips as bullet points if possible
+  function renderTips(tips) {
+    if (!tips) return null;
+    const tipsArray = tips.split(/\r?\n|\r|•|-/).filter(Boolean);
+    if (tipsArray.length > 1) {
+      // Show either truncated or full tips
+      const toShow = showFullTips ? tipsArray : tipsArray.slice(0, 3);
+      return (
+        <>
+          <ul className="list-disc pl-6 space-y-2">
+            {toShow.map((tip, i) => (
+              <li key={i} className="text-gray-300 leading-relaxed">
+                {tip.trim()}
+              </li>
+            ))}
+          </ul>
+          {tipsArray.length > 3 && (
+            <button
+              onClick={() => setShowFullTips(!showFullTips)}
+              className="mt-3 text-blue-400 hover:underline font-semibold"
+            >
+              {showFullTips ? "Show Less" : "Show More"}
+            </button>
+          )}
+        </>
+      );
+    }
+    // If single paragraph, just render plain
+    return <p className="leading-relaxed text-gray-300 whitespace-pre-wrap">{tips}</p>;
+  }
 
   return (
     <div className="flex min-h-screen bg-black text-white">
       <Sidebar />
 
-      <main className="flex-grow p-10 max-w-7xl mx-auto space-y-10">
-        <header>
-          <h1 className="text-5xl font-extrabold mb-2 tracking-tight">Dashboard</h1>
-          <p className="text-gray-400 max-w-2xl text-lg">
+      <main className="flex-grow p-8 max-w-7xl mx-auto">
+        <header className="mb-8">
+          <h1 className="text-4xl font-extrabold mb-2">Dashboard</h1>
+          <p className="text-gray-400 max-w-xl">
             Enter a website below to get live AI and PageSpeed insights.
           </p>
         </header>
 
-        {/* Input */}
-        <div className="flex gap-4 max-w-3xl">
+        {/* Input and Button */}
+        <div className="flex gap-4 mb-8">
           <input
             type="text"
             placeholder="https://example.com"
             value={inputUrl}
             onChange={(e) => setInputUrl(e.target.value)}
-            className="flex-grow bg-gray-900 rounded-lg px-6 py-4 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-grow bg-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             onClick={handleFetchData}
             disabled={loading}
-            className="bg-blue-600 hover:bg-blue-700 rounded-lg px-8 py-4 text-white font-semibold disabled:opacity-60 disabled:cursor-not-allowed transition"
+            className="bg-blue-600 hover:bg-blue-700 rounded-lg px-6 py-3 text-white font-semibold disabled:opacity-60 disabled:cursor-not-allowed transition"
           >
             {loading ? "Loading..." : "Get Insights"}
           </button>
         </div>
 
-        {/* Loading & Error */}
+        {/* Loading and Error */}
         {loading && (
-          <p className="text-blue-400 font-semibold max-w-3xl">Loading insights...</p>
-        )}
-        {error && (
-          <p className="text-red-500 font-semibold max-w-3xl">{error}</p>
+          <>
+            <p className="text-blue-400 font-semibold mb-6">Loading insights...</p>
+            <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+              <KpiSkeleton />
+              <KpiSkeleton />
+              <KpiSkeleton />
+              <KpiSkeleton />
+            </section>
+            <TipsSkeleton />
+          </>
         )}
 
-        {/* Data Panels */}
+        {error && <p className="text-red-500 font-semibold mb-6">{error}</p>}
+
+        {/* Results */}
         {data && (
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-10 max-w-7xl">
-            {/* Left Column */}
-            <div className="space-y-6">
-              <div className="bg-gray-900 rounded-xl p-6 shadow-lg">
-                <div className="flex justify-between items-center mb-6">
-                  <div className="text-xl font-semibold">Javlin Pro</div>
-                  <button className="text-blue-500 hover:underline text-sm">Upgrade</button>
-                </div>
-                <JavlinScoreCard score={formatNumber(data.javlinScore || 0)} />
-                <div className="mt-4 text-gray-400 text-xs select-none">
-                  Powered by Google
-                </div>
-              </div>
-
-              <EarningsCard
-                earnings={data.earnings || 8420}
-                chartData={data.earningsChart || mockLineData}
-              />
-
-              <PageSpeedCard speed={data.pageSpeed || 1.9} />
-            </div>
-
-            {/* Middle Column */}
-            <div className="space-y-6">
-              <AIRecommendations
-                recommendations={data.aiRecommendations || mockRecommendations}
-              />
-
-              <CompetitorBenchmark
-                competitors={data.competitors || mockCompetitors}
-              />
-            </div>
-
-            {/* Right Column */}
-            <div className="space-y-6">
+          <>
+            {/* KPI Cards */}
+            <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+              <JavlinScoreCard score={formatNumber(data.javlinScore || 0)} />
               <KpiCard
                 title="Speed Score"
                 value={formatPercent(data.speedScore || 0)}
-                chartData={data.speedChart || mockLineData}
+                chartData={data.speedChart}
               />
+              <TrafficPicCard
+                title="Monthly Traffic"
+                value={formatNumber(data.monthlyTraffic || 0)}
+                chartData={data.trafficChart}
+              />
+              <RevenueCard
+                title="Monthly Revenue"
+                value={formatDollars(data.monthlyRevenue || 0)}
+                chartData={data.revenueChart}
+              />
+            </section>
 
-              <KpiCard
-                title="Traffic"
-                value={formatNumber(data.traffic || 31500)}
-                chartData={data.trafficChart || mockLineData}
-              />
-            </div>
-          </section>
+            {/* AI Tips Section */}
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold mb-4">AI Tips</h2>
+              <div className="bg-gray-900 rounded-lg shadow-md shadow-blue-600/20 p-6 text-gray-300">
+                {renderTips(data.aiTips)}
+              </div>
+            </section>
+
+            {/* AI Tools */}
+            <section>
+              <h2 className="text-2xl font-bold mb-6">AI Tools</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {tools.map((tool) => (
+                  <ToolCard key={tool.title} {...tool} />
+                ))}
+              </div>
+            </section>
+          </>
         )}
       </main>
     </div>
   );
 }
+
 
 
 
