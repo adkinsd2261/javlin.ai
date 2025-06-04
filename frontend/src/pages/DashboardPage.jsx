@@ -4,16 +4,22 @@ import JavlinScoreCard from "../components/JavlinScoreCard";
 import KpiCard from "../components/KpiCard";
 import ToolCard from "../components/ToolCard";
 
-// Helper formatting functions
+// Formatting helpers
 function formatNumber(num) {
   return Number(num).toLocaleString("en-US");
 }
-
 function formatPercent(num) {
   return `${Number(num).toLocaleString("en-US", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   })}%`;
+}
+function formatDollars(num) {
+  return Number(num).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+  });
 }
 
 export default function DashboardPage() {
@@ -27,7 +33,6 @@ export default function DashboardPage() {
       setError("Please enter a website URL.");
       return;
     }
-
     setLoading(true);
     setError("");
     setData(null);
@@ -37,12 +42,8 @@ export default function DashboardPage() {
         `/api/valuation-summary?url=${encodeURIComponent(inputUrl)}`
       );
       const result = await res.json();
-
-      if (res.ok) {
-        setData(result);
-      } else {
-        setError(result.error || "Failed to load data.");
-      }
+      if (res.ok) setData(result);
+      else setError(result.error || "Failed to load data.");
     } catch (err) {
       setError("Server error while fetching data.");
     } finally {
@@ -51,18 +52,21 @@ export default function DashboardPage() {
   };
 
   const tools = [
-    { title: "SEO Analyzer", description: "Analyze SEO performance.", link: "/tools/seo-analyzer" },
-    { title: "Site Health", description: "Check your site's health.", link: "/tools/site-health" },
-    { title: "Content Generator", description: "Generate tailored content.", link: "/tools/content-generator" },
-  ];
-
-  // Dummy chart data for KPI cards (replace with real data later)
-  const mockLineData = [
-    { month: "Jan", value: 30 },
-    { month: "Feb", value: 45 },
-    { month: "Mar", value: 60 },
-    { month: "Apr", value: 55 },
-    { month: "May", value: 75 },
+    {
+      title: "SEO Analyzer",
+      description: "Analyze SEO performance.",
+      link: "/tools/seo-analyzer",
+    },
+    {
+      title: "Site Health",
+      description: "Check your site's health.",
+      link: "/tools/site-health",
+    },
+    {
+      title: "Content Generator",
+      description: "Generate tailored content.",
+      link: "/tools/content-generator",
+    },
   ];
 
   return (
@@ -77,7 +81,7 @@ export default function DashboardPage() {
           </p>
         </header>
 
-        {/* Input and Button */}
+        {/* Input & Button */}
         <div className="flex gap-4 mb-8">
           <input
             type="text"
@@ -95,38 +99,63 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Loading and Error */}
+        {/* Loading & Error */}
         {loading && (
           <p className="text-blue-400 font-semibold mb-6">Loading insights...</p>
         )}
         {error && <p className="text-red-500 font-semibold mb-6">{error}</p>}
 
-        {/* Results */}
+        {/* Data display */}
         {data && (
           <>
-            {/* Fallback warning */}
-            {data.fallback && (
-              <p className="mb-4 text-yellow-400 font-semibold select-none">
-                ⚠️ Showing approximate data due to API issues. Please try again later.
-              </p>
-            )}
-
-            {/* KPI Cards */}
+            {/* KPI Section */}
             <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
               <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50">
-                <JavlinScoreCard score={formatNumber(data.javlinScore || 0)} />
+                <JavlinScoreCard score={formatNumber(data.javlinScore)} />
               </div>
+
               <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50 flex flex-col justify-center">
                 <KpiCard
                   title="Speed Score"
-                  value={formatPercent(data.speedScore || 0)}
-                  chartData={data.speedChart || mockLineData}
+                  value={formatPercent(data.speedScore)}
+                  chartData={data.speedChart}
                 />
               </div>
-              {/* Add other KPIs here */}
+
+              <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50 flex flex-col justify-center">
+                <KpiCard
+                  title="Monthly Traffic"
+                  value={formatNumber(data.traffic)}
+                  chartData={data.trafficChart}
+                />
+              </div>
+
+              <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50 flex flex-col justify-center">
+                <KpiCard
+                  title="Monthly Earnings"
+                  value={formatDollars(data.earnings)}
+                  chartData={data.earningsChart}
+                />
+              </div>
             </section>
 
-            {/* AI Tips Section */}
+            {/* Competitors */}
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold mb-4">Competitors</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                {data.competitors.map((c) => (
+                  <div
+                    key={c.name}
+                    className="bg-gray-900 rounded-lg p-4 shadow-md shadow-blue-600/20"
+                  >
+                    <h3 className="text-white font-semibold">{c.name}</h3>
+                    <p className="text-blue-400 font-bold">{formatPercent(c.score)}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {/* AI Tips */}
             <section className="mb-12">
               <h2 className="text-2xl font-bold mb-4">AI Tips</h2>
               <p className="whitespace-pre-wrap leading-relaxed text-gray-300 p-6 bg-gray-900 rounded-lg shadow-md shadow-blue-600/20">
@@ -149,6 +178,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 
