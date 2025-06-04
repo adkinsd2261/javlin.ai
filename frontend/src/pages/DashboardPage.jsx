@@ -3,10 +3,31 @@ import Sidebar from "../components/Sidebar";
 import JavlinScoreCard from "../components/JavlinScoreCard";
 import KpiCard from "../components/KpiCard";
 import TrafficKpiCard from "../components/TrafficKpiCard";
-import EarningsCard from "../components/EarningsCard";
 import ProgressChartCard from "../components/ProgressChartCard";
-import CompetitorBenchmarkCard from "../components/CompetitorBenchmarkCard";
 import AIRecommendationsCard from "../components/AIRecommendationsCard";
+import EarningsCard from "../components/EarningsCard";
+import PageSpeedCard from "../components/PageSpeedCard";
+import ToolCard from "../components/ToolCard";
+
+// Helper formatting functions
+function formatNumber(num) {
+  return Number(num).toLocaleString("en-US");
+}
+
+function formatPercent(num) {
+  return `${Number(num).toLocaleString("en-US", {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
+}
+
+function formatDollars(num) {
+  return Number(num).toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+  });
+}
 
 export default function DashboardPage() {
   const [data, setData] = useState(null);
@@ -14,17 +35,6 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [inputUrl, setInputUrl] = useState("");
 
-  // Formatting helpers
-  const formatPercent = (num) =>
-    `${Number(num).toLocaleString("en-US", {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    })}%`;
-
-  const formatNumber = (num) =>
-    Number(num).toLocaleString("en-US");
-
-  // Fetch dashboard data
   const handleFetchData = async () => {
     if (!inputUrl) {
       setError("Please enter a website URL.");
@@ -33,9 +43,13 @@ export default function DashboardPage() {
     setLoading(true);
     setError("");
     setData(null);
+
     try {
-      const res = await fetch(`/api/valuation-summary?url=${encodeURIComponent(inputUrl)}`);
+      const res = await fetch(
+        `/api/valuation-summary?url=${encodeURIComponent(inputUrl)}`
+      );
       const result = await res.json();
+
       if (res.ok) {
         setData(result);
       } else {
@@ -43,9 +57,32 @@ export default function DashboardPage() {
       }
     } catch (err) {
       setError("Server error while fetching data.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  const tools = [
+    { title: "SEO Analyzer", description: "Analyze SEO performance.", link: "/tools/seo-analyzer" },
+    { title: "Site Health", description: "Check your site's health.", link: "/tools/site-health" },
+    { title: "Content Generator", description: "Generate tailored content.", link: "/tools/content-generator" },
+  ];
+
+  // Dummy fallback data for charts and KPIs
+  const mockLineData = [
+    { month: "Jan", value: 30 },
+    { month: "Feb", value: 45 },
+    { month: "Mar", value: 60 },
+    { month: "Apr", value: 55 },
+    { month: "May", value: 75 },
+  ];
+
+  const mockRecommendations = [
+    "Increase backlink count to at least 30",
+    "Improve page load speed to under 3 seconds",
+    "Add alt text to 20 images missing descriptions",
+    "Update your top-performing content from 2024",
+  ];
 
   return (
     <div className="flex min-h-screen bg-black text-white">
@@ -60,7 +97,7 @@ export default function DashboardPage() {
         </header>
 
         {/* Input and Button */}
-        <div className="flex gap-4 mb-8 max-w-4xl">
+        <div className="flex gap-4 mb-8 max-w-3xl">
           <input
             type="text"
             placeholder="https://example.com"
@@ -78,48 +115,62 @@ export default function DashboardPage() {
         </div>
 
         {/* Loading and Error */}
-        {loading && (
-          <p className="text-blue-400 font-semibold mb-6">Loading insights...</p>
-        )}
+        {loading && <p className="text-blue-400 font-semibold mb-6">Loading insights...</p>}
         {error && <p className="text-red-500 font-semibold mb-6">{error}</p>}
 
         {/* Results */}
         {data && (
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-            {/* Left Main Cards */}
-            <div className="md:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
-              <JavlinScoreCard score={data.javlinScore || 0} />
+          <>
+            {/* KPI Cards */}
+            <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+              <JavlinScoreCard score={formatNumber(data.javlinScore || 0)} />
               <KpiCard
                 title="Speed Score"
                 value={formatPercent(data.speedScore || 0)}
-                chartData={data.speedChart}
+                chartData={data.speedChart || mockLineData}
               />
               <TrafficKpiCard
                 title="Traffic"
                 value={formatNumber(data.traffic || 0)}
-                chartData={data.trafficChart}
+                chartData={data.trafficChart || mockLineData}
+              />
+              <ProgressChartCard progressData={data.progressChart || mockLineData} />
+            </section>
+
+            {/* Secondary KPI Section */}
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+              <AIRecommendationsCard
+                title="AI Recommendations"
+                recommendations={data.aiRecommendations || mockRecommendations}
               />
               <EarningsCard
-                earnings={data.earnings}
-                pageSpeed={data.pageSpeed}
+                earnings={data.earnings || 0}
+                pageSpeed={data.pageSpeed || 0}
               />
-            </div>
+              <PageSpeedCard
+                speed={data.pageSpeed || 0}
+                lastUpdated={data.pageSpeedLastUpdated}
+              />
+            </section>
 
-            {/* Right Sidebar Cards */}
-            <div className="md:col-span-4 flex flex-col gap-6">
-              <AIRecommendationsCard recommendations={data.aiRecommendations || []} />
-              <ProgressChartCard progressData={data.progressData} />
-              <CompetitorBenchmarkCard competitors={data.competitors} />
-            </div>
-
-            {/* AI Tips - full width */}
-            <section className="md:col-span-12 mt-8">
+            {/* AI Tips Section */}
+            <section className="mb-12">
               <h2 className="text-2xl font-bold mb-4">AI Tips</h2>
               <p className="whitespace-pre-wrap leading-relaxed text-gray-300 p-6 bg-gray-900 rounded-lg shadow-md shadow-blue-600/20">
-                {data.aiTips}
+                {data.aiTips || "No AI tips available."}
               </p>
             </section>
-          </div>
+
+            {/* AI Tools */}
+            <section>
+              <h2 className="text-2xl font-bold mb-6">AI Tools</h2>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl">
+                {tools.map((tool) => (
+                  <ToolCard key={tool.title} {...tool} />
+                ))}
+              </div>
+            </section>
+          </>
         )}
       </main>
     </div>
