@@ -4,29 +4,46 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Utility for fetch with timeout and retries (optional)
+// Utility to add timeout to fetch
+async function timeoutFetch(url, options = {}, timeout = 30000) {
+  return Promise.race([
+    fetch(url, options),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Fetch timeout")), timeout)
+    ),
+  ]);
+}
+
+// Retry helper for PageSpeed API fetch with timeout
 async function fetchPageSpeedData(url, apiKey, retries = 3, delay = 1500) {
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await fetch(
+      const response = await timeoutFetch(
         `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(
           url
-        )}&key=${apiKey}`
+        )}&key=${apiKey}`,
+        {},
+        25000 // 25 seconds timeout per fetch attempt
       );
 
-      if (response.ok) return response.json();
-
-      const errorData = await response.json();
-      if (errorData.error && errorData.error.code === 500 && i < retries - 1) {
-        await new Promise((res) => setTimeout(res, delay));
+      if (response.ok) {
+        return response.json();
       } else {
-        throw new Error(`PageSpeed API error: ${JSON.stringify(errorData)}`);
+        const errorData = await response.json();
+        if (errorData.error && errorData.error.code === 500 && i < retries - 1) {
+          await new Promise((res) => setTimeout(res, delay));
+        } else {
+          throw new Error(`PageSpeed API error: ${JSON.stringify(errorData)}`);
+        }
       }
     } catch (err) {
-      if (i === retries - 1) throw err;
+      if (i === retries - 1) {
+        throw err; // rethrow after last attempt
+      }
       await new Promise((res) => setTimeout(res, delay));
     }
   }
+  throw new Error("Failed to fetch PageSpeed data after retries");
 }
 
 export default async function handler(req, res) {
@@ -35,46 +52,61 @@ export default async function handler(req, res) {
   }
 
   const siteUrl = req.query.url;
-  if (!siteUrl) return res.status(400).json({ error: "Missing url parameter" });
+  if (!siteUrl) {
+    return res.status(400).json({ error: "Missing url parameter" });
+  }
 
   let pagespeedData;
   try {
     pagespeedData = await fetchPageSpeedData(siteUrl, process.env.GOOGLE_PAGESPEED_API_KEY);
-  } catch (error) {
-    return res.status(500).json({ error: error.message || "Failed to fetch PageSpeed data" });
+  } catch (psError) {
+    return res.status(500).json({ error: psError.message || "Failed to fetch PageSpeed data" });
   }
 
-  const speedScore = Math.round(pagespeedData?.lighthouseResult?.categories?.performance?.score * 100) || 0;
+  // Extract performance score safely
+  const speedScore =
+    Math.round(
+      pagespeedData?.lighthouseResult?.categories?.performance?.score * 100
+    ) || 0;
 
-  // Example dummy data for other KPIs (replace with real logic or API calls)
-  const progressData = {
-    value: 86,
-    dataPoints: [72, 75, 78, 86],
-    labels: ["Apr", "May", "Jun", "Jul"],
-  };
+  // Setup AbortController for OpenAI timeout
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 seconds timeout
 
   let aiTips = "";
   try {
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are an expert web performance and SEO analyst providing actionable tips." },
-        { role: "user", content: `The website has a speed performance score of ${speedScore}. Give me 3 clear, actionable improvement tips.` },
+        {
+          role: "system",
+          content: "You are an expert web performance and SEO analyst providing actionable tips.",
+        },
+        {
+          role: "user",
+          content: `The website has a speed performance score of ${speedScore}. Give me 3 clear, concise improvement tips.`,
+        },
       ],
+      max_tokens: 150,
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
     aiTips = completion.choices[0].message.content;
-  } catch {
-    aiTips = "Failed to fetch AI tips";
+  } catch (aiError) {
+    clearTimeout(timeoutId);
+    console.error("OpenAI fetch error or timeout:", aiError.message || aiError);
+    aiTips = "AI tips unavailable at the moment, please try again later.";
   }
 
+  // Return combined response
   return res.status(200).json({
-    javlinScore: speedScore,
     speedScore,
-    speedChart: progressData.dataPoints.map((v, i) => ({ month: progressData.labels[i], value: v })),
-    progressData,
     aiTips,
+    javlinScore: speedScore,
   });
 }
+
 
 
 
