@@ -15,7 +15,7 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
 
   const fetchDashboardData = async () => {
-    if (!inputUrl) {
+    if (!inputUrl.trim()) {
       setError("Please enter a website URL.");
       return;
     }
@@ -40,7 +40,7 @@ export default function DashboardPage() {
     }
   };
 
-  // Safe destructuring with defaults
+  // Destructure with safe defaults
   const {
     javlinScore = 0,
     speedScore = 0,
@@ -52,6 +52,7 @@ export default function DashboardPage() {
     competitorBenchmark = { items: [] },
   } = data || {};
 
+  // Ensure recommendations is always an array
   const aiRecommendationsSafe = Array.isArray(aiRecommendations) ? aiRecommendations : [];
 
   return (
@@ -66,7 +67,7 @@ export default function DashboardPage() {
           </p>
         </header>
 
-        {/* Input + button */}
+        {/* Input + Button */}
         <div className="flex gap-4 mb-8 max-w-xl">
           <input
             type="text"
@@ -87,10 +88,10 @@ export default function DashboardPage() {
         {/* Error */}
         {error && <p className="text-red-500 font-semibold mb-6">{error}</p>}
 
-        {/* Data display */}
+        {/* Data Display */}
         {data && (
           <>
-            {/* Top KPIs */}
+            {/* Top KPI cards */}
             <section className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
               <JavlinScoreCard score={javlinScore} />
               <SpeedScoreCard score={speedScore} />
