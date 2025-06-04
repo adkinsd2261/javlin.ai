@@ -4,22 +4,16 @@ import JavlinScoreCard from "../components/JavlinScoreCard";
 import KpiCard from "../components/KpiCard";
 import ToolCard from "../components/ToolCard";
 
-// Formatting helpers
+// Helper formatting functions
 function formatNumber(num) {
   return Number(num).toLocaleString("en-US");
 }
+
 function formatPercent(num) {
   return `${Number(num).toLocaleString("en-US", {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   })}%`;
-}
-function formatDollars(num) {
-  return Number(num).toLocaleString("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 0,
-  });
 }
 
 export default function DashboardPage() {
@@ -33,6 +27,7 @@ export default function DashboardPage() {
       setError("Please enter a website URL.");
       return;
     }
+
     setLoading(true);
     setError("");
     setData(null);
@@ -42,8 +37,12 @@ export default function DashboardPage() {
         `/api/valuation-summary?url=${encodeURIComponent(inputUrl)}`
       );
       const result = await res.json();
-      if (res.ok) setData(result);
-      else setError(result.error || "Failed to load data.");
+
+      if (res.ok) {
+        setData(result);
+      } else {
+        setError(result.error || "Failed to load data.");
+      }
     } catch (err) {
       setError("Server error while fetching data.");
     } finally {
@@ -51,6 +50,7 @@ export default function DashboardPage() {
     }
   };
 
+  // Example Tools for AI Tools section
   const tools = [
     {
       title: "SEO Analyzer",
@@ -69,6 +69,19 @@ export default function DashboardPage() {
     },
   ];
 
+  // Function to format AI tips as bullet points
+  function formatAiTips(tips) {
+    // Split by new lines, filter empty lines
+    return tips
+      .split(/\r?\n/)
+      .filter((line) => line.trim() !== "")
+      .map((line, idx) => (
+        <li key={idx} className="mb-2 leading-relaxed">
+          {line.replace(/^[-*]\s?/, "") /* Remove any bullet chars */}
+        </li>
+      ));
+  }
+
   return (
     <div className="flex min-h-screen bg-black text-white">
       <Sidebar />
@@ -81,7 +94,7 @@ export default function DashboardPage() {
           </p>
         </header>
 
-        {/* Input & Button */}
+        {/* Input and Button */}
         <div className="flex gap-4 mb-8">
           <input
             type="text"
@@ -99,68 +112,36 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        {/* Loading & Error */}
+        {/* Loading and Error */}
         {loading && (
           <p className="text-blue-400 font-semibold mb-6">Loading insights...</p>
         )}
         {error && <p className="text-red-500 font-semibold mb-6">{error}</p>}
 
-        {/* Data display */}
+        {/* Results */}
         {data && (
           <>
-            {/* KPI Section */}
+            {/* KPI Cards */}
             <section className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 mb-12">
               <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50">
-                <JavlinScoreCard score={formatNumber(data.javlinScore)} />
+                <JavlinScoreCard score={formatNumber(data.javlinScore || 0)} />
               </div>
-
               <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50 flex flex-col justify-center">
                 <KpiCard
                   title="Speed Score"
-                  value={formatPercent(data.speedScore)}
+                  value={formatPercent(data.speedScore || 0)}
                   chartData={data.speedChart}
                 />
               </div>
-
-              <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50 flex flex-col justify-center">
-                <KpiCard
-                  title="Monthly Traffic"
-                  value={formatNumber(data.traffic)}
-                  chartData={data.trafficChart}
-                />
-              </div>
-
-              <div className="bg-gray-900 rounded-xl shadow-md shadow-blue-600/20 p-6 transition-shadow duration-300 hover:shadow-blue-600/50 flex flex-col justify-center">
-                <KpiCard
-                  title="Monthly Earnings"
-                  value={formatDollars(data.earnings)}
-                  chartData={data.earningsChart}
-                />
-              </div>
+              {/* Add more KPIs here */}
             </section>
 
-            {/* Competitors */}
-            <section className="mb-12">
-              <h2 className="text-2xl font-bold mb-4">Competitors</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {data.competitors.map((c) => (
-                  <div
-                    key={c.name}
-                    className="bg-gray-900 rounded-lg p-4 shadow-md shadow-blue-600/20"
-                  >
-                    <h3 className="text-white font-semibold">{c.name}</h3>
-                    <p className="text-blue-400 font-bold">{formatPercent(c.score)}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            {/* AI Tips */}
+            {/* AI Tips Section */}
             <section className="mb-12">
               <h2 className="text-2xl font-bold mb-4">AI Tips</h2>
-              <p className="whitespace-pre-wrap leading-relaxed text-gray-300 p-6 bg-gray-900 rounded-lg shadow-md shadow-blue-600/20">
-                {data.aiTips}
-              </p>
+              <ul className="list-disc list-inside text-gray-300 p-6 bg-gray-900 rounded-lg shadow-md shadow-blue-600/20">
+                {formatAiTips(data.aiTips)}
+              </ul>
             </section>
 
             {/* AI Tools */}
@@ -178,6 +159,7 @@ export default function DashboardPage() {
     </div>
   );
 }
+
 
 
 
